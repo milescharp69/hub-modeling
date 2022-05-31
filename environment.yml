@@ -14,4 +14,5 @@ dependencies:
   - navigator-updater
   - matplotlib
   - git
+  - streamlit_echarts
 prefix: C:\Users\Miles\anaconda3
