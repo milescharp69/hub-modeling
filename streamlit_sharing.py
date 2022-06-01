@@ -6,6 +6,7 @@ from streamlit_echarts import st_echarts
 from VehicleClass import VehicleClass
 from Hub import Hub
 from Port import Port
+import time
 
 
 #Global Variables
@@ -19,7 +20,7 @@ Class_A = VehicleClass(0, pq.Quantity(3.181, 'miles / kW') , pq.Quantity(15638, 
 Class_B = VehicleClass(1, pq.Quantity(1.245, 'miles / kW') , pq.Quantity(16200, 'miles / year'))  
 Class_C = VehicleClass(2, pq.Quantity(0.41, 'miles / kW') , pq.Quantity(48750, 'miles / year'))  
 
-#Rural Hub
+#Hubs
 Hub_Name = "Rural"
 Hub_Notional_Loading = np.array([0.6,0.1])
 Hub_Ports = np.array([Port(pq.Quantity(150, 'kW'),2)])
@@ -126,3 +127,10 @@ pieGraph = {
 
 st_echarts(options=pieGraph, width="100%", key=0)
 
+with st.sidebar:
+    with st.echo():
+        st.write("This code will be printed to the sidebar.")
+
+    with st.spinner("Loading..."):
+        time.sleep(5)
+    st.success("Done!")
