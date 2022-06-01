@@ -245,4 +245,4 @@ option = {
     }
   ]
 }
-st_echarts(options=option, width="100%", key=0)
+st_echarts(options=option, width="100%", key=1)
