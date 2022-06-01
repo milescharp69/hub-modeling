@@ -202,6 +202,28 @@ Vehicle_Classes = [Class_A,Class_B,Class_C]
 Hub_Rural = Hub(Hub_Name, Hub_Notional_Loading, Hub_Ports, Hub_Vehicle_Mix, Vehicle_Classes)
 #Hub_Rural.Show()
 
+Hub_Name = "Urban Community"
+Hub_Notional_Loading = np.array([0.7,0.5])
+Hub_Ports = np.array([Port(150,2)])
+Hub_Vehicle_Mix = [0.7, 0.3, 0]
+Vehicle_Classes = [Class_A,Class_B,Class_C]
+Hub_Urban_Community = Hub(Hub_Name, Hub_Notional_Loading, Hub_Ports, Hub_Vehicle_Mix, Vehicle_Classes)
+#Hub_Urban_Community.Show()
+
+
+Hub_Notional_Loading = np.array([0.7,0.5])
+Hub_Ports = np.array([Port(150,8), Port(300,2)])
+Hub_Vehicle_Mix = [0.35, 0.5 , 0.15]
+Vehicle_Classes = [Class_A,Class_B,Class_C]
+Hub_Urban_Multimodal = Hub(Hub_Name, Hub_Notional_Loading, Hub_Ports, Hub_Vehicle_Mix, Vehicle_Classes)
+
+Hub_Name = "Commercial Dominant"
+Hub_Notional_Loading = np.array([0.8,0.6])
+Hub_Ports = np.array([Port(150,6), Port(350,18),Port(1000,16)])
+Hub_Vehicle_Mix = [0.1, 0.35 , 0.55]
+Vehicle_Classes = [Class_A,Class_B,Class_C]
+Hub_Commercial_Dominant = Hub(Hub_Name, Hub_Notional_Loading, Hub_Ports, Hub_Vehicle_Mix, Vehicle_Classes)
+
 # #Hub Page
 st.title("Hub Modeling")
 
@@ -215,8 +237,23 @@ st.write('You selected:', choice)
 #[{ "value": 335, "name": "Direct" }, { "value": 310, "name": "Email" },{ "value": 274, "name": "Union Ads" },{ "value": 235, "name": "Video Ads" },{ "value": 400, "name": "Search Engine" }]
 if choice == 'Rural':
     pieGraphData = [{"value": Hub_Rural.Vehicles_Serviced_Per_Month_By_Class(0), "name": "Class 1-2 Vehicles"},
-                    {"value": Hub_Rural.Vehicles_Serviced_Per_Month_By_Class(1), "name": "Class 1-2 Vehicles"},
-                    {"value": Hub_Rural.Vehicles_Serviced_Per_Month_By_Class(2), "name": "Class 1-2 Vehicles"}
+                    {"value": Hub_Rural.Vehicles_Serviced_Per_Month_By_Class(1), "name": "Class 2-6 Vehicles"},
+                    {"value": Hub_Rural.Vehicles_Serviced_Per_Month_By_Class(2), "name": "Class 7-8 Vehicles"}
+                    ]
+elif choice == 'Urban Community':
+    pieGraphData = [{"value": Hub_Urban_Community.Vehicles_Serviced_Per_Month_By_Class(0), "name": "Class 1-2 Vehicles"},
+                    {"value": Hub_Urban_Community.Vehicles_Serviced_Per_Month_By_Class(1), "name": "Class 2-6 Vehicles"},
+                    {"value": Hub_Urban_Community.Vehicles_Serviced_Per_Month_By_Class(2), "name": "Class 7-8 Vehicles"}
+                    ]
+elif choice == 'Urban Multimodal':
+    pieGraphData = [{"value": Hub_Urban_Multimodal.Vehicles_Serviced_Per_Month_By_Class(0), "name": "Class 1-2 Vehicles"},
+                    {"value": Hub_Urban_Multimodal.Vehicles_Serviced_Per_Month_By_Class(1), "name": "Class 2-6 Vehicles"},
+                    {"value": Hub_Urban_Multimodal.Vehicles_Serviced_Per_Month_By_Class(2), "name": "Class 7-8 Vehicles"}
+                    ]
+else:
+    pieGraphData = [{"value": Hub_Commercial_Dominant.Vehicles_Serviced_Per_Month_By_Class(0), "name": "Class 1-2 Vehicles"},
+                    {"value": Hub_Commercial_Dominant.Vehicles_Serviced_Per_Month_By_Class(1), "name": "Class 2-6 Vehicles"},
+                    {"value": Hub_Commercial_Dominant.Vehicles_Serviced_Per_Month_By_Class(2), "name": "Class 7-8 Vehicles"}
                     ]
 
 pieGraph = {
