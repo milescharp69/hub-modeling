@@ -49,8 +49,9 @@ Vehicle_Classes = [Class_A,Class_B,Class_C]
 Hub_Commercial_Dominant = Hub(Hub_Name, Hub_Notional_Loading, Hub_Ports, Hub_Vehicle_Mix, Vehicle_Classes)
 
 # #Hub Page
-st.title("Hub Modeling")
 st.set_page_config(layout="wide")
+st.title("Hub Modeling")
+
 
 #Hub type selection
 with st.sidebar:
