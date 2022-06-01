@@ -140,7 +140,7 @@ BARGRAPH_xaxislabels = [definedHubs[i].Hub_Type for i in range(len(definedHubs))
 #Maximum load/use
 copyDefinedHubs = list(definedHubs)
 for i in range(len(copyDefinedHubs)):
-    copyDefinedHubs[i].Notional_Loading = 1
+    copyDefinedHubs[i].Notional_Loading = [1,1]
 BARGRAPH_seriesdata = [{
     "name": "Class 1-2",
     "type": 'bar',
