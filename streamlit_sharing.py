@@ -204,7 +204,7 @@ Hub_Rural = Hub(Hub_Name, Hub_Notional_Loading, Hub_Ports, Hub_Vehicle_Mix, Vehi
 
 Hub_Name = "Urban Community"
 Hub_Notional_Loading = np.array([0.7,0.5])
-Hub_Ports = np.array([Port(150,2)])
+Hub_Ports = np.array([Port(pq.Quantity(150, 'kW'),2)])
 Hub_Vehicle_Mix = [0.7, 0.3, 0]
 Vehicle_Classes = [Class_A,Class_B,Class_C]
 Hub_Urban_Community = Hub(Hub_Name, Hub_Notional_Loading, Hub_Ports, Hub_Vehicle_Mix, Vehicle_Classes)
@@ -212,14 +212,14 @@ Hub_Urban_Community = Hub(Hub_Name, Hub_Notional_Loading, Hub_Ports, Hub_Vehicle
 
 
 Hub_Notional_Loading = np.array([0.7,0.5])
-Hub_Ports = np.array([Port(150,8), Port(300,2)])
+Hub_Ports = np.array([Port(pq.Quantity(150, 'kW'),8), Port(pq.Quantity(300, 'kW'),2)])
 Hub_Vehicle_Mix = [0.35, 0.5 , 0.15]
 Vehicle_Classes = [Class_A,Class_B,Class_C]
 Hub_Urban_Multimodal = Hub(Hub_Name, Hub_Notional_Loading, Hub_Ports, Hub_Vehicle_Mix, Vehicle_Classes)
 
 Hub_Name = "Commercial Dominant"
 Hub_Notional_Loading = np.array([0.8,0.6])
-Hub_Ports = np.array([Port(150,6), Port(350,18),Port(1000,16)])
+Hub_Ports = np.array([Port(pq.Quantity(150, 'kW'),6), Port(pq.Quantity(350, 'kW'),18),Port(pq.Quantity(1000, 'kW'),16)])
 Hub_Vehicle_Mix = [0.1, 0.35 , 0.55]
 Vehicle_Classes = [Class_A,Class_B,Class_C]
 Hub_Commercial_Dominant = Hub(Hub_Name, Hub_Notional_Loading, Hub_Ports, Hub_Vehicle_Mix, Vehicle_Classes)
