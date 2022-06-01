@@ -135,7 +135,12 @@ st_echarts(options=pieGraph, width="100%", key=0)
 
 #option={"tooltip":{"trigger":"axis","axisPointer":{"type":"shadow"}},"legend":{},"grid":{"left":"3%","right":"4%","bottom":"3%","containLabel":!0},"xAxis":[{"type":"category","data":["Mon","Tue","Wed","Thu","Fri","Sat","Sun"]}],"yAxis":[{"type":"value"}],series:[{name:"Direct",type:"bar",emphasis:{focus:"series"},data:[320,332,301,334,390,330,320]},{name:"Email",type:"bar",stack:"Ad",emphasis:{focus:"series"},data:[120,132,101,134,90,230,210]},{name:"Union Ads",type:"bar",stack:"Ad",emphasis:{focus:"series"},data:[220,182,191,234,290,330,310]},{name:"Video Ads",type:"bar",stack:"Ad",emphasis:{focus:"series"},data:[150,232,201,154,190,330,410]},{name:"Search Engine",type:"bar",data:[862,1018,964,1026,1679,1600,1570],emphasis:{focus:"series"},markLine:{lineStyle:{type:"dashed"},data:[[{type:"min"},{type:"max"}]]}},{name:"Baidu",type:"bar",barWidth:5,stack:"Search Engine",emphasis:{focus:"series"},data:[620,732,701,734,1090,1130,1120]},{name:"Google",type:"bar",stack:"Search Engine",emphasis:{focus:"series"},data:[120,132,101,134,290,230,220]},{name:"Bing",type:"bar",stack:"Search Engine",emphasis:{focus:"series"},data:[60,72,71,74,190,130,110]},{name:"Others",type:"bar",stack:"Search Engine",emphasis:{focus:"series"},data:[62,82,91,84,109,110,120]}]}
 
+#Bargraph
 BARGRAPH_xaxislabels = [definedHubs[i].Hub_Type for i in range(len(definedHubs))]
+#Maximum load/use
+copyDefinedHubs = list(definedHubs)
+for i in range(len(copyDefinedHubs)):
+    copyDefinedHubs[i].Notional_Loading = 1
 BARGRAPH_seriesdata = [{
     "name": "Class 1-2",
     "type": 'bar',
@@ -162,11 +167,35 @@ BARGRAPH_seriesdata = [{
         "focus": 'series'
     },
     "data": [definedHubs[i].Vehicles_Serviced_Per_Month_By_Class(2) for i in range(len(definedHubs))]
+},
+{
+    "name": "Class 1-2",
+    "type": 'bar',
+    "stack": 'max',
+    "emphasis": {
+        "focus": 'series'
+    },
+    "data": [copyDefinedHubs[i].Vehicles_Serviced_Per_Month_By_Class(0) for i in range(len(definedHubs))]
+},
+{
+    "name": "Class 3-6",
+    "type": 'bar',
+    "stack": 'max',
+    "emphasis": {
+        "focus": 'series'
+    },
+    "data": [copyDefinedHubs[i].Vehicles_Serviced_Per_Month_By_Class(1) for i in range(len(definedHubs))]
+},
+{
+    "name": "Class 7-8",
+    "type": 'bar',
+    "stack": 'max',
+    "emphasis": {
+        "focus": 'series'
+    },
+    "data": [copyDefinedHubs[i].Vehicles_Serviced_Per_Month_By_Class(2) for i in range(len(definedHubs))]
 }
 ]
-
-
-
 option = {
   "tooltip": {
     "trigger": 'axis',
