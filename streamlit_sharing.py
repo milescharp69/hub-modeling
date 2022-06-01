@@ -180,14 +180,14 @@ option = {
   },
   "xAxis": [
     {
-      "title" : 'Hub type',
+      "name" : 'Hub Type',
       "type": 'category',
       "data": BARGRAPH_xaxislabels
     }
   ],
   "yAxis": [
     {
-        "title" : 'Vehicle Throughput',
+      "name" : 'Vehicle Throughput',
       "type": 'value'
     }
   ],
