@@ -1,3 +1,5 @@
+import copy
+
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -138,9 +140,12 @@ st_echarts(options=pieGraph, width="100%", key=0)
 #Bargraph
 BARGRAPH_xaxislabels = [definedHubs[i].Hub_Type for i in range(len(definedHubs))]
 #Maximum load/use
-copyDefinedHubs = list(definedHubs)
+
+copyDefinedHubs = copy.deepcopy(definedHubs)
 for i in range(len(copyDefinedHubs)):
     copyDefinedHubs[i].Notional_Loading = [1,1]
+print(definedHubs[0].Show())
+print(copyDefinedHubs[0].Show())
 BARGRAPH_seriesdata = [{
     "name": "Class 1-2",
     "type": 'bar',
