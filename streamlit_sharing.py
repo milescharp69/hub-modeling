@@ -1,13 +1,8 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-#from hub_data import Hub, Port, VehicleClass
-import streamlit_echarts
 import quantities as pq
-
-#Button for the different types of hubs 
-#Vehicle Page
-#Settings Page
+from streamlit_echarts import st_echarts
 
 #Global Variables
 OPERATION_HOURS = pq.Quantity(24, 'hour')
@@ -28,8 +23,6 @@ class Port:
     
     def data(self):
         return [self.Port_kW, self.Port_Amount]
-
-
 class VehicleClass:
     def __init__(self, Veh_Class, mi_kW, mi_year):
         self.Veh_Class = Veh_Class
@@ -42,7 +35,7 @@ class VehicleClass:
     def Dwell_Time(self, Port_Used): #Capcity based on the monthly consumption of the weight vehicle class         
         #h / month    
         #return (self.kW_Month() * pq.hour /  ( Port_Used.Port_kW * Port_Used.Port_Efficiency)).rescale(CompoundUnit("hour / month"))
-        return (self.kW_Month() * pq.hour /  ( Port_Used.Port_kW * Port_Used.Port_Efficiency)).rescale(("hour / month"))
+        return (self.kW_Month() * pq.hour /  ( Port_Used.Port_kW * Port_Used.Port_Efficiency)).rescale("hour / month")
 class Hub:
     def __init__(self, Hub_Type, Notional_Loading, ESVE_Ports, Vehicle_Mix, Vehicle_Classes):
         self.Hub_Type = Hub_Type
@@ -192,8 +185,6 @@ class Hub:
         print("Class 3-6 Vehicles Serviced:", self.Vehicles_Serviced_Per_Month_By_Class(1))
         print("Class 7-8 Vehicles Serviced:", self.Vehicles_Serviced_Per_Month_By_Class(2))
         
-         
-
 
 sess = pq.UnitQuantity('30 minute Session', 30 * pq.min, symbol='sess')
 
@@ -212,36 +203,26 @@ Hub_Rural = Hub(Hub_Name, Hub_Notional_Loading, Hub_Ports, Hub_Vehicle_Mix, Vehi
 #Hub_Rural.Show()
 
 # #Hub Page
-st.title("Rural Hub")
+st.title("Hub Modeling")
 
-from streamlit_echarts import st_echarts
+#Hub type selection
+choice = st.selectbox(
+     'Select a Hub Type',
+     ('Rural', 'Urban Community', 'Urban Multimodal', 'Commercial Dominant'))
 
+st.write('You selected:', choice)
 
-# import json
+#[{ "value": 335, "name": "Direct" }, { "value": 310, "name": "Email" },{ "value": 274, "name": "Union Ads" },{ "value": 235, "name": "Video Ads" },{ "value": 400, "name": "Search Engine" }]
+if choice == 'Rural':
+    pieGraphData = [{"value": Hub_Rural.Vehicles_Serviced_Per_Month_By_Class(0), "Name": "Class 1-2 Vehicles"},
+                    {"value": Hub_Rural.Vehicles_Serviced_Per_Month_By_Class(1), "Name": "Class 1-2 Vehicles"},
+                    {"value": Hub_Rural.Vehicles_Serviced_Per_Month_By_Class(2), "Name": "Class 1-2 Vehicles"}
+                    ]
 
-
-# # with open('a.json','r') as f:
-# #     s = f.read()
-# #     print(s)
-# #     print()
-# #     s = s.replace('\t','')
-# #     s = s.replace('\'','\"')
-# #     s = s.replace('\n','')
-# #     s = s.replace(',}','}')
-# #     s = s.replace(',]',']')
-# #     print(s)
-# #     data = json.loads(s)
-
-# # JSON_option = data
-
-# #option = {  backgroundColor: '#2c343c',  title: {    text: 'Customized Pie',    left: 'center',    top: 20,    textStyle: {      color: '#ccc'    }  },  tooltip: {    trigger: 'item'  },  visualMap: {    show: false,    min: 80,    max: 600,    inRange: {      colorLightness: [0, 1]    }  },  series: [    {      name: 'Access From',      type: 'pie',      radius: '55%',      center: ['50%', '50%'],      data: [        { value: 335, name: 'Direct' },        { value: 310, name: 'Email' },        { value: 274, name: 'Union Ads' },        { value: 235, name: 'Video Ads' },        { value: 400, name: 'Search Engine' }      ].sort(function (a, b) {        return a.value - b.value;      }),      roseType: 'radius',      label: {        color: 'rgba(255, 255, 255, 0.3)'      },      labelLine: {        lineStyle: {          color: 'rgba(255, 255, 255, 0.3)'        },        smooth: 0.2,        length: 10,        length2: 20      },      itemStyle: {        color: '#c23531',        shadowBlur: 200,        shadowColor: 'rgba(0, 0, 0, 0.5)'      },      animationType: 'scale',      animationEasing: 'elasticOut',      animationDelay: function (idx) {        return Math.random() * 200;      }    }  ]};
-
-def jsonFun(a,b):
-    return a.value - b.value
-test = {
+pieGraph = {
   "backgroundColor": "#2c343c",
   "title": {
-    "text": "Test",
+    "text": "Vehicle Serviced",
     "left": "center",
     "top": 20,
     "textStyle": {
@@ -258,7 +239,7 @@ test = {
       "type": "pie",
       "radius": "55%",
       "center": ["50%", "50%"],
-      "data": [{ "value": 335, "name": "Direct" }, { "value": 310, "name": "Email" },{ "value": 274, "name": "Union Ads" },{ "value": 235, "name": "Video Ads" },{ "value": 400, "name": "Search Engine" }],
+      "data": pieGraphData,
       "roseType": "radius",
       "label": {
         "color": "rgba(255, 255, 255, 0.3)"
@@ -283,9 +264,6 @@ test = {
   ]
 }
 
-# #options = json.loads(JSON_option)
 
-
-
-st_echarts(options=test, width="100%", key=0)
+st_echarts(options=pieGraph, width="100%", key=0)
 
