@@ -214,9 +214,9 @@ st.write('You selected:', choice)
 
 #[{ "value": 335, "name": "Direct" }, { "value": 310, "name": "Email" },{ "value": 274, "name": "Union Ads" },{ "value": 235, "name": "Video Ads" },{ "value": 400, "name": "Search Engine" }]
 if choice == 'Rural':
-    pieGraphData = [{"value": Hub_Rural.Vehicles_Serviced_Per_Month_By_Class(0), "Name": "Class 1-2 Vehicles"},
-                    {"value": Hub_Rural.Vehicles_Serviced_Per_Month_By_Class(1), "Name": "Class 1-2 Vehicles"},
-                    {"value": Hub_Rural.Vehicles_Serviced_Per_Month_By_Class(2), "Name": "Class 1-2 Vehicles"}
+    pieGraphData = [{"value": Hub_Rural.Vehicles_Serviced_Per_Month_By_Class(0), "name": "Class 1-2 Vehicles"},
+                    {"value": Hub_Rural.Vehicles_Serviced_Per_Month_By_Class(1), "name": "Class 1-2 Vehicles"},
+                    {"value": Hub_Rural.Vehicles_Serviced_Per_Month_By_Class(2), "name": "Class 1-2 Vehicles"}
                     ]
 
 pieGraph = {
