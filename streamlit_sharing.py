@@ -138,7 +138,7 @@ st_echarts(options=pieGraph, width="100%", key=0)
 BARGRAPH_xaxislabels = [definedHubs[i].Hub_Type for i in range(len(definedHubs))]
 BARGRAPH_seriesdata = [{
     "name": "Class 1-2",
-    "type": 'bar',
+    "type": 'stack',
     "emphasis": {
         "focus": 'series'
     },
@@ -146,7 +146,7 @@ BARGRAPH_seriesdata = [{
 },
 {
     "name": "Class 3-6",
-    "type": 'bar',
+    "type": 'stack',
     "emphasis": {
         "focus": 'series'
     },
@@ -154,7 +154,7 @@ BARGRAPH_seriesdata = [{
 },
 {
     "name": "Class 7-8",
-    "type": 'bar',
+    "type": 'stack',
     "emphasis": {
         "focus": 'series'
     },
