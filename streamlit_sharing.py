@@ -172,6 +172,7 @@ option = {
       "type": 'shadow'
     }
   },
+  "legend": {},
   "grid": {
     "left": '3%',
     "right": '4%',
@@ -193,4 +194,4 @@ option = {
   ],
   "series": BARGRAPH_seriesdata
 }
-st_echarts(options=option, width="100%", key=1)
+#st_echarts(options=option, width="100%", key=1)
