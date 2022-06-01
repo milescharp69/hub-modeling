@@ -172,21 +172,22 @@ option = {
       "type": 'shadow'
     }
   },
-  "legend": {},
   "grid": {
     "left": '3%',
     "right": '4%',
     "bottom": '3%',
-    "containLabel": "false"
+    "containLabel": "true"
   },
   "xAxis": [
     {
+      "title" : 'Hub type',
       "type": 'category',
       "data": BARGRAPH_xaxislabels
     }
   ],
   "yAxis": [
     {
+        "title" : 'Vehicle Throughput',
       "type": 'value'
     }
   ],
