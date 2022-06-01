@@ -50,15 +50,16 @@ Hub_Commercial_Dominant = Hub(Hub_Name, Hub_Notional_Loading, Hub_Ports, Hub_Veh
 
 # #Hub Page
 st.title("Hub Modeling")
+st.set_page_config(layout="wide")
 
 #Hub type selection
-choice = st.selectbox(
-     'Select a Hub Type',
-     ('Rural', 'Urban Community', 'Urban Multimodal', 'Commercial Dominant'))
+with st.sidebar:
+    choice = st.selectbox(
+        'Select a Hub Type',
+        ('Rural', 'Urban Community', 'Urban Multimodal', 'Commercial Dominant'))
 
-st.write('You selected:', choice)
+    #st.write('You selected:', choice)
 
-#[{ "value": 335, "name": "Direct" }, { "value": 310, "name": "Email" },{ "value": 274, "name": "Union Ads" },{ "value": 235, "name": "Video Ads" },{ "value": 400, "name": "Search Engine" }]
 if choice == 'Rural':
     pieGraphData = [{"value": Hub_Rural.Vehicles_Serviced_Per_Month_By_Class(0), "name": "Class 1-2 Vehicles"},
                     {"value": Hub_Rural.Vehicles_Serviced_Per_Month_By_Class(1), "name": "Class 2-6 Vehicles"},
@@ -127,10 +128,4 @@ pieGraph = {
 
 st_echarts(options=pieGraph, width="100%", key=0)
 
-with st.sidebar:
-    with st.echo():
-        st.write("This code will be printed to the sidebar.")
 
-    with st.spinner("Loading..."):
-        time.sleep(5)
-    st.success("Done!")
