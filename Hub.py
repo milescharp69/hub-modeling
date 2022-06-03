@@ -139,19 +139,27 @@ class Hub:
         return total
 
     def Show(self):
-        print(self.Hub_Type, ":\n")
-        print("Max 30 minute sessions per month (Notional Loading):", self.Monthly_Svc_Sessions())
-        print("- For Class 1-2 (Notional Loading):", self.Max_Sessions_Per_Vehicle_Class(0))
-        print("- For Class 3-6 (Notional Loading):", self.Max_Sessions_Per_Vehicle_Class(1))
-        print("- For Class 7-8 (Notional Loading):", self.Max_Sessions_Per_Vehicle_Class(2))
-        print()
-        print("Ports")
-        for i in range(0, len(self.ESVE_Ports)):
-            self.ESVE_Ports[i].show()
-            print("Max 30 minute sessions per month:", self.Max_Sessions_Per_Port_Month(i))
-            print()
-
-        print("Number of Vehicle Serviced Per Month:", np.sum(self.Total_Vehicles_Serviced_Per_Month_By_Class()))
-        print("Class 1-2 Vehicles Serviced:", self.Vehicles_Serviced_Per_Month_By_Class(0))
-        print("Class 3-6 Vehicles Serviced:", self.Vehicles_Serviced_Per_Month_By_Class(1))
-        print("Class 7-8 Vehicles Serviced:", self.Vehicles_Serviced_Per_Month_By_Class(2))
+        return
+        (
+        """
+        Hub_Type = {} \n
+        Notional_Loading =  {} \n
+        ESVE_Ports = {} \n
+        Vehicle_Mix = {} \n
+        Vehicle_Classes = {} \n0
+        """.format(self.Hub_Type, self.Notional_Loading, self.ESVE_Ports, self.Vehicle_Mix, self.Vehicle_Classes ))
+        # return ("""
+        # Max 30 minute sessions per month (Notional Loading {} \n
+        # - For Class 1-2 (Notional Loading): {} \n
+        # - For Class 3-6 (Notional Loading): {} \n
+        # - For Class 7-8 (Notional Loading): {} \n
+        # Number of Vehicle Serviced Per Month {} \n
+        # - {} \n
+        # - {} \n
+        # - {}
+        # """.format(self.Monthly_Svc_Sessions(), self.Max_Sessions_Per_Vehicle_Class(0), self.Max_Sessions_Per_Vehicle_Class(1), self.Max_Sessions_Per_Vehicle_Class(2),
+        #            np.sum(self.Total_Vehicles_Serviced_Per_Month_By_Class()),
+        #            self.Vehicles_Serviced_Per_Month_By_Class(0),
+        #            self.Vehicles_Serviced_Per_Month_By_Class(1),
+        #            self.Vehicles_Serviced_Per_Month_By_Class(2)
+        #            ))
