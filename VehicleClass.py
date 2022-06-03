@@ -1,10 +1,11 @@
 import quantities as pq
 import Port
 class VehicleClass:
-    def __init__(self, Veh_Class, mi_kW, mi_year):
+    def __init__(self, Veh_Class, mi_kW, mi_year, className):
         self.Veh_Class = Veh_Class
         self.mi_kW = mi_kW
         self.mi_year = mi_year
+        self.className = className
 
     def kW_Month(self):
         return (self.mi_year * (1 / self.mi_kW)).rescale('kW / month')

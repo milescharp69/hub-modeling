@@ -68,8 +68,8 @@ class Hub:
     def Peak_kW(self):  # Ask about this applied efficency
         peak = 0
         for i in range(0, len(self.ESVE_Ports)):
-            peak += self.ESVE_Ports[i].Port_kW * self.ESVE_Ports[i].Port_Amount * self.ESVE_Ports[i].Port_Efficiency
-        return peak
+            peak += ((self.ESVE_Ports[i].Port_kW).rescale('kW')).magnitude * self.ESVE_Ports[i].Port_Amount * self.ESVE_Ports[i].Port_Efficiency
+        return pq.Quantity(peak, 'kW')
 
     ##########################################################################################
     ################################## WORK IN PROGRESS ######################################
