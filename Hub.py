@@ -16,6 +16,10 @@ class Hub:
         self.Vehicle_Classes = Vehicle_Classes
 
     # Hub Methods
+    def set_mix(self, a, b, c):
+        self.Vehicle_Mix = [a,b,c]
+
+
     def Total_Ports(self):
         totalPorts = 0
         for i in range(0, len(self.ESVE_Ports)):

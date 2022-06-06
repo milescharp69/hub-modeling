@@ -15,7 +15,7 @@ Class_B = VehicleClass(1, pq.Quantity(1.245, 'miles / kW') , pq.Quantity(16200, 
 Class_C = VehicleClass(2, pq.Quantity(0.41, 'miles / kW') , pq.Quantity(48750, 'miles / year'), 'Class 7-8')
 
 Hub_Name = "Rural"
-Hub_Notional_Loading = np.array([0.6,0.1])
+Hub_Notional_Loading = [0.6,0.1]
 Hub_Ports = np.array([Port(pq.Quantity(150, 'kW'),2)])
 Hub_Vehicle_Mix = [0.4, 0.5, 0.1]
 Vehicle_Classes = [Class_A,Class_B,Class_C]
@@ -28,24 +28,90 @@ copyDefinedHubs.Notional_Loading = [1, 1]
 
 
 class AppData:
-    def __init__(self, peakloaddelta, classAMixdelta, classBMixdelta, classCMixdelta):
+    def __init__(self, peakloaddelta, classAMixdelta, classBMixdelta, classCMixdelta, usageAdelta, usageBdelta):
         self.peakloaddelta = peakloaddelta
         self.classAMixdelta = classAMixdelta
         self.classBMixdelta = classBMixdelta
         self.classCMixdelta = classCMixdelta
-pagedata = AppData(0, 0, 0, 0)
+        self.usageAdelta = usageAdelta
+        self.usageBdelta = usageBdelta
+        self.copyhub = Hub(Hub_Name, Hub_Notional_Loading, Hub_Ports, Hub_Vehicle_Mix, Vehicle_Classes)
+pagedata = AppData(0, 0, 0, 0, 0, 0)
 
 
 
 def app():
+    classmixexpander = st.sidebar.expander("Vehicle Class Mix Sliders")
 
+    def changedeltaA(orgval):
+        pagedata.classAMixdelta = round(orgval - st.session_state.class_a_slider, 2) * -1
 
-    maininfocontainer = st.container()
-    maincol1, maincol2 = maininfocontainer.columns(2)
-    #submaininfocontainer = maininfocontainer.container()
+    def changedeltaB(orgval):
+        pagedata.classBMixdelta = round(orgval - st.session_state.class_b_slider, 2) * -1
 
-    #Hub Infomations
-    maincol1expander = maincol1.expander("Hub Information ", expanded=True)
+    def changedeltaC(orgval):
+        pagedata.classCMixdelta = round(orgval - st.session_state.class_c_slider, 2) * -1
+
+    # st.sidebar.header("Vehicle Class Mix Sliders")
+    class_a_mix = classmixexpander.slider('Vehicle Class A Mix', 0.0, 1.0, Hub_Vehicle_Mix[0], step=0.05,
+                                          key="class_a_slider", on_change=changedeltaA, args=(Hub_Vehicle_Mix[0],)
+                                          )
+
+    class_b_mix = classmixexpander.slider('Vehicle Class B Mix', 0.0, 1.0, Hub_Vehicle_Mix[1], step=0.05,
+                                          key="class_b_slider", on_change=changedeltaB, args=(Hub_Vehicle_Mix[1],)
+                                          )
+
+    class_c_mix = classmixexpander.slider('Vehicle Class C Mix', 0.0, 1.0, Hub_Vehicle_Mix[2], step=0.05,
+                                          key="class_c_slider", on_change=changedeltaC, args=(Hub_Vehicle_Mix[2],)
+                                          )
+
+    if class_a_mix + class_b_mix + class_c_mix != 1:
+        # update Vehicle mix
+        pagedata.copyhub.Vehicle_Mix = [class_a_mix, class_b_mix, class_c_mix]
+        classmixexpander.text("Vehicle Mix should add up to 1!")
+
+    pagedata.copyhub = Hub(Hub_Name, Hub_Notional_Loading, Hub_Ports,
+                           [st.session_state.class_a_slider, st.session_state.class_b_slider,
+                            st.session_state.class_c_slider], Vehicle_Classes)
+
+    usage_loading_expander = st.sidebar.expander("Hub Usage Sliders")
+
+    def changedeltausageA(orgval):
+        pagedata.usageAdelta = round(orgval - st.session_state.usage_a_slider, 2) * -1
+
+    def changedeltausageB(orgval):
+        pagedata.usageBdelta = round(orgval - st.session_state.usage_b_slider, 2) * -1
+
+    sliderUsageA = usage_loading_expander.slider('Usage 7am-10pm', 0.0, 1.0, Hub_Notional_Loading[0], step=0.05,
+                                                 key="usage_a_slider", on_change=changedeltausageA,
+                                                 args=(Hub_Notional_Loading[0],)
+                                                 )
+
+    sliderUsageB = usage_loading_expander.slider('Usage 10pm-7am', 0.0, 1.0, Hub_Notional_Loading[1], step=0.05,
+                                                 key="usage_b_slider", on_change=changedeltausageB,
+                                                 args=(Hub_Notional_Loading[1],)
+                                                 )
+    pagedata.copyhub.Notional_Loading = [st.session_state.usage_a_slider, st.session_state.usage_b_slider]
+
+    metric_container = st.container()
+    # metric_container.text("Hub Information")
+
+    metric_container_info = metric_container.container()
+    metric_container_info_col1, metric_container_info_col2, metric_container_info_col3, metric_container_info_col4, metric_container_info_col5 = metric_container_info.columns(
+        [1, 1, 1, 1, 1])
+
+    metric_container_info_col1.metric("Usage 7am-10pm", Hub_Rural.Notional_Loading[0],
+                                      pagedata.usageAdelta)
+    metric_container_info_col2.metric("Usage 10pm-7am", Hub_Rural.Notional_Loading[1],
+                                      pagedata.usageBdelta)
+    metric_container_info_col3.metric("Class A Mix", str(Hub_Vehicle_Mix[0]), pagedata.classAMixdelta)
+    metric_container_info_col4.metric("Class B Mix", str(Hub_Vehicle_Mix[1]), pagedata.classBMixdelta)
+    metric_container_info_col5.metric("Class C Mix", str(Hub_Vehicle_Mix[2]), pagedata.classCMixdelta)
+
+    # Hubinfo expander
+    hubinfocontainer = st.container()
+    hubinfocontainercol1, hubinfocontainercol2 = hubinfocontainer.columns(2)
+    maincol1expander = hubinfocontainercol1.expander("Hub Information ", expanded=True)
     maincol1expander.markdown(
         """
     <style>
@@ -56,386 +122,165 @@ def app():
     """,
         unsafe_allow_html=True,
     )
+    maincol1expander.markdown(
+        "<p style='text-align: left; color: black; text-indent: 15%;'>Hub Type:       {}</p>".format(
+            Hub_Rural.Hub_Type), unsafe_allow_html=True)
+    maincol1expander.markdown(
+        "<p style='text-align: left; color: black; text-indent: 15%;'>Total Ports:        {}</p>".format(
+            Hub_Rural.Total_Ports()), unsafe_allow_html=True)
+    maincol1expander.markdown(
+        "<p style='text-align: left; color: black; text-underline-offset: 20%; text-indent: 15%;'><u>Types of Ports</u></p>",
+        unsafe_allow_html=True)
+    for i in range(len(Hub_Rural.ESVE_Ports)):
+        maincol1expander.markdown(
+            "<p style='text-align: left; color: black; text-underline-offset: 20%; text-indent: 20%;'>• {}</p>".format(
+                Hub_Rural.ESVE_Ports[i].datatext()),
+            unsafe_allow_html=True)
 
+    # Peak load expander
+    maincol2expander = hubinfocontainercol2.expander("Peak Load", expanded=True)
+    maincol2expander.markdown("<p style='text-align: center; color: black; font-size: 25px;'>{}</p>".format(
+        Hub_Rural.Peak_kW()), unsafe_allow_html=True)
+    maincol2expander.text("Work In Progress")
 
-    maincol1expander.metric("Peak kW", Hub_Rural.Peak_kW(),pagedata.peakloaddelta )
-    maincol1expander.metric("Amount of ports", str(Hub_Rural.Total_Ports()))
-    maincol1expander.metric("Class A Mix", str(Hub_Vehicle_Mix[0]), pagedata.classAMixdelta)
-    maincol1expander.metric("Class B Mix", str(Hub_Vehicle_Mix[1]), pagedata.classBMixdelta)
-    maincol1expander.metric("Class C Mix", str(Hub_Vehicle_Mix[2]), pagedata.classCMixdelta)
+    # Figures
 
-    maincol2expander = maincol2.expander("Sliders", expanded=True)
-    maincol2expander.text("Work in progress")
-
-    def changedeltaA(orgval):
-        pagedata.classAMixdelta = round(orgval - st.session_state.class_a_slider, 2) * -1
-    def changedeltaB(orgval):
-        pagedata.classBMixdelta = round(orgval - st.session_state.class_b_slider, 2) * -1
-    def changedeltaC(orgval):
-        pagedata.classCMixdelta = round(orgval - st.session_state.class_c_slider, 2) * -1
-
-    class_a_mix = maincol2expander.slider('Vehicle Class A Mix', 0.0, 1.0, Hub_Vehicle_Mix[0], step=0.05,
-                                          key= "class_a_slider", on_change=changedeltaA, args=(Hub_Vehicle_Mix[0], )
-    )
-
-    class_b_mix = maincol2expander.slider('Vehicle Class B Mix', 0.0, 1.0, Hub_Vehicle_Mix[1], step=0.05,
-                                          key= "class_b_slider", on_change=changedeltaB, args=(Hub_Vehicle_Mix[1], )
-    )
-
-    class_c_mix = maincol2expander.slider('Vehicle Class C Mix', 0.0, 1.0, Hub_Vehicle_Mix[2], step=0.05,
-                                          key= "class_c_slider", on_change=changedeltaC, args=(Hub_Vehicle_Mix[2], )
-    )
-
-    if class_a_mix + class_b_mix + class_c_mix != 1:
-        maincol2expander.text("Vehicle Mix should add up to 1!")
-
-
-    #Figures
-
-    figurecontainer = st.container()
-    #Pie graph
-
-    piggraphcontainer = figurecontainer.container()
-
-    #A slider was changed
-    if pagedata.classAMixdelta != 0 or  pagedata.classBMixdelta != 0 or pagedata.classCMixdelta != 0:
-        piegraphcol1, piegraphcol2, piegraphcol3 = piggraphcontainer.columns(3)
-        with piegraphcol1:
-            pieGraphData = [{"value": Hub_Rural.Vehicles_Serviced_Per_Month_By_Class(0), "name": "Class 1-2 Vehicles"},
-                            {"value": Hub_Rural.Vehicles_Serviced_Per_Month_By_Class(1), "name": "Class 2-6 Vehicles"},
-                            {"value": Hub_Rural.Vehicles_Serviced_Per_Month_By_Class(2), "name": "Class 7-8 Vehicles"}
-                            ]
-            pieGraphTitle = "Typical Use"
-            pieGraph = {
-                "backgroundColor": "#2c343c",
-                "title": {
-                    "text": pieGraphTitle,
-                    "left": "center",
-                    "top": 20,
-                    "textStyle": {
-                        "color": "#ccc"
-                    }
-                },
-                "tooltip": {
-                    "trigger": "item"
-                },
-
-                "series": [
-                    {
-                        "type": "pie",
-                        "radius": "55%",
-                        "center": ["50%", "50%"],
-                        "data": pieGraphData,
-                        "roseType": "radius",
-                        "label": {
-                            "color": "rgba(255, 255, 255, 0.3)"
-                        },
-                        "labelLine": {
-                            "lineStyle": {
-                                "color": "rgba(255, 255, 255, 0.3)"
-                            },
-                            "smooth": .2,
-                            "length": 10,
-                            "length2": 20
-                        },
-                        "itemStyle": {
-                            "color": "#c23531",
-                            "shadowBlur": 200,
-                            "shadowColor": "rgba(0, 0, 0, 0.5)"
-                        },
-                        "animationType": "scale",
-                        "animationEasing": "elasticOut",
-                        "animationDelay": "function (idx) {return Math.random()* 200;}"
-                    }
-                ]
-            }
-            st_echarts(options=pieGraph, width="100%")
-
-        with piegraphcol2:
-            pieGraphData = [{"value": copyDefinedHubs.Vehicles_Serviced_Per_Month_By_Class(0), "name": "Class 1-2 Vehicles"},
-                            {"value": copyDefinedHubs.Vehicles_Serviced_Per_Month_By_Class(1), "name": "Class 3-6 Vehicles"},
-                            {"value": copyDefinedHubs.Vehicles_Serviced_Per_Month_By_Class(2), "name": "Class 7-8 Vehicles"}
-                            ]
-            pieGraphTitle = "Maximum Use"
-            pieGraph = {
-                "backgroundColor": "#2c343c",
-                "title": {
-                    "text": pieGraphTitle,
-                    "left": "center",
-                    "top": 20,
-                    "textStyle": {
-                        "color": "#ccc"
-                    }
-                },
-                "tooltip": {
-                    "trigger": "item"
-                },
-
-                "series": [
-                    {
-                        "type": "pie",
-                        "radius": "55%",
-                        "center": ["50%", "50%"],
-                        "data": pieGraphData,
-                        "roseType": "radius",
-                        "label": {
-                            "color": "rgba(255, 255, 255, 0.3)"
-                        },
-                        "labelLine": {
-                            "lineStyle": {
-                                "color": "rgba(255, 255, 255, 0.3)"
-                            },
-                            "smooth": .2,
-                            "length": 10,
-                            "length2": 20
-                        },
-                        "itemStyle": {
-                            "color": "#c23531",
-                            "shadowBlur": 200,
-                            "shadowColor": "rgba(0, 0, 0, 0.5)"
-                        },
-                        "animationType": "scale",
-                        "animationEasing": "elasticOut",
-                        "animationDelay": "function (idx) {return Math.random()* 200;}"
-                    }
-                ]
-            }
-            st_echarts(options=pieGraph, width="100%")
-
-        with piegraphcol3:
-            Class_A = VehicleClass(0, pq.Quantity(3.181, 'miles / kW'), pq.Quantity(15638, 'miles / year'), "Class 1-2")
-            Class_B = VehicleClass(1, pq.Quantity(1.245, 'miles / kW'), pq.Quantity(16200, 'miles / year'), 'Class 3-6')
-            Class_C = VehicleClass(2, pq.Quantity(0.41, 'miles / kW'), pq.Quantity(48750, 'miles / year'), 'Class 7-8')
-
-            Hub_Name = "Rural"
-            Hub_Notional_Loading = np.array([0.6, 0.1])
-            Hub_Ports = np.array([Port(pq.Quantity(150, 'kW'), 2)])
-            Vehicle_Classes = [Class_A, Class_B, Class_C]
-            ruralHubCopyVehMix = Hub(Hub_Name, Hub_Notional_Loading, Hub_Ports, [st.session_state.class_a_slider,
-                    st.session_state.class_b_slider, st.session_state.class_c_slider], Vehicle_Classes)
-            pieGraphData = [{"value": ruralHubCopyVehMix.Vehicles_Serviced_Per_Month_By_Class(0), "name": "Class 1-2 Vehicles"},
-                            {"value": ruralHubCopyVehMix.Vehicles_Serviced_Per_Month_By_Class(1), "name": "Class 3-6 Vehicles"},
-                            {"value": ruralHubCopyVehMix.Vehicles_Serviced_Per_Month_By_Class(2), "name": "Class 7-8 Vehicles"}
-                            ]
-            pieGraphTitle = "Custom Use"
-            pieGraph = {
-                "backgroundColor": "#2c343c",
-                "title": {
-                    "text": pieGraphTitle,
-                    "left": "center",
-                    "top": 20,
-                    "textStyle": {
-                        "color": "#ccc"
-                    }
-                },
-                "tooltip": {
-                    "trigger": "item"
-                },
-                "visualMap": {
-                    "show" : False,
-                    "min": -215,
-                    "max": 215,
-                    "inRange": {
-                        "colorLightness": [0, 1]
-                    }
-                },
-                "series": [
-                    {
-                        "type": "pie",
-                        "radius": "55%",
-                        "center": ["50%", "50%"],
-                        "data": pieGraphData,
-                        "roseType": "radius",
-                        "label": {
-                            "color": "rgba(255, 255, 255, 0.3)"
-                        },
-                        "labelLine": {
-                            "lineStyle": {
-                                "color": "rgba(255, 255, 255, 0.3)"
-                            },
-                            "smooth": .2,
-                            "length": 10,
-                            "length2": 20
-                        },
-                        "itemStyle": {
-                            "color": "#c23531",
-                            "shadowBlur": 1000,
-                            "shadowColor": "rgba(0, 0, 0, 0.5)"
-                        },
-                        "animationType": "scale",
-                        "animationEasing": "elasticOut",
-                        "animationDelay": "function (idx) {return Math.random()* 200;}"
-                    }
-                ]
-            }
-            st_echarts(options=pieGraph, width="100%")
-    else:
-        piegraphcol1, piegraphcol2 = piggraphcontainer.columns(2)
-        with piegraphcol1:
-            pieGraphData = [{"value": Hub_Rural.Vehicles_Serviced_Per_Month_By_Class(0), "name": "Class 1-2 Vehicles"},
-                            {"value": Hub_Rural.Vehicles_Serviced_Per_Month_By_Class(1), "name": "Class 3-6 Vehicles"},
-                            {"value": Hub_Rural.Vehicles_Serviced_Per_Month_By_Class(2), "name": "Class 7-8 Vehicles"}
-                            ]
-            pieGraphTitle = "Typical Use"
-            pieGraph = {
-                "backgroundColor": "#2c343c",
-                "title": {
-                    "text": pieGraphTitle,
-                    "left": "center",
-                    "top": 20,
-                    "textStyle": {
-                        "color": "#ccc"
-                    }
-                },
-                "tooltip": {
-                    "trigger": "item"
-                },
-
-                "series": [
-                    {
-                        "type": "pie",
-                        "radius": "55%",
-                        "center": ["50%", "50%"],
-                        "data": pieGraphData,
-                        "roseType": "radius",
-                        "label": {
-                            "color": "rgba(255, 255, 255, 0.3)"
-                        },
-                        "labelLine": {
-                            "lineStyle": {
-                                "color": "rgba(255, 255, 255, 0.3)"
-                            },
-                            "smooth": .2,
-                            "length": 10,
-                            "length2": 20
-                        },
-                        "itemStyle": {
-                            "color": "#c23531",
-                            "shadowBlur": 200,
-                            "shadowColor": "rgba(0, 0, 0, 0.5)"
-                        },
-                        "animationType": "scale",
-                        "animationEasing": "elasticOut",
-                        "animationDelay": "function (idx) {return Math.random()* 200;}"
-                    }
-                ]
-            }
-            st_echarts(options=pieGraph, width="100%")
-
-        with piegraphcol2:
-            pieGraphData = [{"value": copyDefinedHubs.Vehicles_Serviced_Per_Month_By_Class(0), "name": "Class 1-2 Vehicles"},
-                            {"value": copyDefinedHubs.Vehicles_Serviced_Per_Month_By_Class(1), "name": "Class 2-6 Vehicles"},
-                            {"value": copyDefinedHubs.Vehicles_Serviced_Per_Month_By_Class(2), "name": "Class 7-8 Vehicles"}
-                            ]
-            pieGraphTitle = "Maximum Use"
-            pieGraph = {
-                "backgroundColor": "#2c343c",
-                "title": {
-                    "text": pieGraphTitle,
-                    "left": "center",
-                    "top": 20,
-                    "textStyle": {
-                        "color": "#ccc"
-                    }
-                },
-                "tooltip": {
-                    "trigger": "item"
-                },
-
-                "series": [
-                    {
-                        "type": "pie",
-                        "radius": "55%",
-                        "center": ["50%", "50%"],
-                        "data": pieGraphData,
-                        "roseType": "radius",
-                        "label": {
-                            "color": "rgba(255, 255, 255, 0.3)"
-                        },
-                        "labelLine": {
-                            "lineStyle": {
-                                "color": "rgba(255, 255, 255, 0.3)"
-                            },
-                            "smooth": .2,
-                            "length": 10,
-                            "length2": 20
-                        },
-                        "itemStyle": {
-                            "color": "#c23531",
-                            "shadowBlur": 200,
-                            "shadowColor": "rgba(0, 0, 0, 0.5)"
-                        },
-                        "animationType": "scale",
-                        "animationEasing": "elasticOut",
-                        "animationDelay": "function (idx) {return Math.random()* 200;}"
-                    }
-                ]
-            }
-            st_echarts(options=pieGraph, width="100%")
-
+    bargraphexpander = st.expander("Vehicle Throughput per Hub use")
     ####################
-    #Bar graph
-    BARGRAPH_xaxislabels = ["Typical Use", "Max Use"]
+    # Bar graph
 
+    if pagedata.usageAdelta != 0 or pagedata.usageBdelta != 0 or pagedata.classAMixdelta != 0 or pagedata.classBMixdelta != 0 or pagedata.classCMixdelta != 0:
+        BARGRAPH_xaxislabels = ["Typical Use", "Max Use", "Custom Use"]
 
-    BARGRAPH_seriesdata = [{
-        "name": "Class A",
-        "type": 'bar',
-        "stack": 'Ad',
-        "emphasis": {
-            "focus": 'series'
-        },
-        "data": [Hub_Rural.Vehicles_Serviced_Per_Month_By_Class(0), copyDefinedHubs.Vehicles_Serviced_Per_Month_By_Class(0)]
-        },
-        {
-            "name": "Class B",
+        BARGRAPH_seriesdata = [{
+            "name": "Class A",
             "type": 'bar',
             "stack": 'Ad',
             "emphasis": {
                 "focus": 'series'
             },
-            "data": [Hub_Rural.Vehicles_Serviced_Per_Month_By_Class(1), copyDefinedHubs.Vehicles_Serviced_Per_Month_By_Class(1)]
+            "data": [Hub_Rural.Vehicles_Serviced_Per_Month_By_Class(0),
+                     copyDefinedHubs.Vehicles_Serviced_Per_Month_By_Class(0),
+                     pagedata.copyhub.Vehicles_Serviced_Per_Month_By_Class(0)]
         },
-        {
-            "name": "Class c",
-            "type": 'bar',
-            "stack": 'Ad',
-            "emphasis": {
-                "focus": 'series'
+            {
+                "name": "Class B",
+                "type": 'bar',
+                "stack": 'Ad',
+                "emphasis": {
+                    "focus": 'series'
+                },
+                "data": [Hub_Rural.Vehicles_Serviced_Per_Month_By_Class(1),
+                         copyDefinedHubs.Vehicles_Serviced_Per_Month_By_Class(1),
+                         pagedata.copyhub.Vehicles_Serviced_Per_Month_By_Class(1)]
             },
-            "data": [Hub_Rural.Vehicles_Serviced_Per_Month_By_Class(2), copyDefinedHubs.Vehicles_Serviced_Per_Month_By_Class(2)]
+            {
+                "name": "Class c",
+                "type": 'bar',
+                "stack": 'Ad',
+                "emphasis": {
+                    "focus": 'series'
+                },
+                "data": [Hub_Rural.Vehicles_Serviced_Per_Month_By_Class(2),
+                         copyDefinedHubs.Vehicles_Serviced_Per_Month_By_Class(2),
+                         pagedata.copyhub.Vehicles_Serviced_Per_Month_By_Class(2)]
+            }
+
+        ]
+        option = {
+            "tooltip": {
+                "trigger": 'axis',
+                "axisPointer": {
+                    "type": 'shadow'
+                }
+            },
+            "legend": {},
+            "grid": {
+                "left": '3%',
+                "right": '4%',
+                "bottom": '3%',
+                "containLabel": "true"
+            },
+            "xAxis": [
+                {
+                    "name": 'Hub Type',
+                    "type": 'category',
+                    "data": BARGRAPH_xaxislabels
+                }
+            ],
+            "yAxis": [
+                {
+                    "name": 'Vehicle Throughput',
+                    "type": 'value'
+                }
+            ],
+            "series": BARGRAPH_seriesdata
         }
+        with bargraphexpander:
+            st_echarts(options=option, width="100%")
+    else:
+        BARGRAPH_xaxislabels = ["Typical Use", "Max Use"]
 
-    ]
-    option = {
-        "tooltip": {
-            "trigger": 'axis',
-            "axisPointer": {
-                "type": 'shadow'
-            }
+        BARGRAPH_seriesdata = [{
+            "name": "Class A",
+            "type": 'bar',
+            "stack": 'Ad',
+            "emphasis": {
+                "focus": 'series'
+            },
+            "data": [Hub_Rural.Vehicles_Serviced_Per_Month_By_Class(0),
+                     copyDefinedHubs.Vehicles_Serviced_Per_Month_By_Class(0)]
         },
-        "legend": {},
-        "grid": {
-            "left": '3%',
-            "right": '4%',
-            "bottom": '3%',
-            "containLabel": "true"
-        },
-        "xAxis": [
             {
-                "name": 'Hub Type',
-                "type": 'category',
-                "data": BARGRAPH_xaxislabels
-            }
-        ],
-        "yAxis": [
+                "name": "Class B",
+                "type": 'bar',
+                "stack": 'Ad',
+                "emphasis": {
+                    "focus": 'series'
+                },
+                "data": [Hub_Rural.Vehicles_Serviced_Per_Month_By_Class(1),
+                         copyDefinedHubs.Vehicles_Serviced_Per_Month_By_Class(1)]
+            },
             {
-                "name": 'Vehicle Throughput',
-                "type": 'value'
+                "name": "Class c",
+                "type": 'bar',
+                "stack": 'Ad',
+                "emphasis": {
+                    "focus": 'series'
+                },
+                "data": [Hub_Rural.Vehicles_Serviced_Per_Month_By_Class(2),
+                         copyDefinedHubs.Vehicles_Serviced_Per_Month_By_Class(2)]
             }
-        ],
-        "series": BARGRAPH_seriesdata
-    }
-    bargraphexpander = figurecontainer.expander("Add text here", expanded = True)
-    with bargraphexpander:
-        st_echarts(options=option, width="100%")
+
+        ]
+        option = {
+            "tooltip": {
+                "trigger": 'axis',
+                "axisPointer": {
+                    "type": 'shadow'
+                }
+            },
+            "legend": {},
+            "grid": {
+                "left": '3%',
+                "right": '4%',
+                "bottom": '3%',
+                "containLabel": "true"
+            },
+            "xAxis": [
+                {
+                    "name": 'Hub Type',
+                    "type": 'category',
+                    "data": BARGRAPH_xaxislabels
+                }
+            ],
+            "yAxis": [
+                {
+                    "name": 'Vehicle Throughput',
+                    "type": 'value'
+                }
+            ],
+            "series": BARGRAPH_seriesdata
+        }
+        with bargraphexpander:
+            st_echarts(options=option, width="100%")

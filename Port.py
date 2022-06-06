@@ -11,3 +11,5 @@ class Port:
 
     def data(self):
         return [self.Port_kW, self.Port_Amount]
+    def datatext(self):
+        return "{}x{}".format(self.Port_Amount, self.Port_kW)
