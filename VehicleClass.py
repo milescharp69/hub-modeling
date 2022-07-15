@@ -1,56 +1,67 @@
 import quantities as pq
 from Port import Port
-class VehicleClass:
-    def __init__(self, Veh_Class, mi_kWH, mi_year, className):
-        self.Veh_Class = Veh_Class
-        self.mi_kWH = mi_kWH
-        self.mi_year = mi_year
-        self.className = className
 
-    def consumption(self):
-        """
-        Weekly Consumption of Energy
-        :return:
-        """
-        return (self.mi_year * (1 / self.mi_kWH)).rescale('(kW * hour) / week') * pq.week
+class vehicleClass(object):
+    #TODO: Add doc string
+    #TODO: Add args** thing/ pop parameters into where they need to go
+    def __init__(self, veh_class):
+        if veh_class == 0:
+            self.mi_kWH = pq.Quantity(3.181, 'miles / (kW * hour)')
+            self.mi_year = pq.Quantity(15638, 'miles / year')
+            self.className = 'Class 1-2'
+        elif veh_class == 1:
+            self.mi_kWH = pq.Quantity(1.245, 'miles / (kW * hour)')
+            self.mi_year = pq.Quantity(16200, 'miles / year')
+            self.className = 'Class 3-6'
+        else:
+            self.mi_kWH = pq.Quantity(0.41, 'miles / (kW * hour)')
+            self.mi_year = pq.Quantity(48750, 'miles / year')
+            self.className = 'Class 7-8'
 
-    def dwell(self, port):
-        """
-        Time needed to charge the vehicle using the given port
-        :param port:
-        :return:
-        """
-        return self.consumption() / port.Port_kW
-
-    def info(self):
-        print(self.className)
-        print("Miles per year:", self.mi_year)
-        print("Miles Per kWh:", self.mi_kWH)
-        print("Weeky consumption:", self.consumption())
-        print("0-100% of Weekly Consumption on each Port")
-        print("1000kW Port:", self.dwell(Port(pq.Quantity(1000, 'kW'))))
-        print("350kW Port:", self.dwell(Port(pq.Quantity(350, 'kW'))))
-        print("300kW Port:", self.dwell(Port(pq.Quantity(300, 'kW'))))
-        print("150kW Port:", self.dwell(Port(pq.Quantity(150, 'kW'))))
-
-# Class_C = VehicleClass(2, pq.Quantity(0.41, 'miles / (kW * hour)') , pq.Quantity(48750, 'miles / year'), 'Class 7-8')
-# #print( (Class_C.Dwell_Time(Port(pq.Quantity(150, 'kW')))).rescale("hour/month")  )
+class car(vehicleClass):
+    def __init__(self, battery_capacity, vehicle_class):
+        super(car, self).__init__(vehicle_class)
+        self.battery_capacity = battery_capacity  # Energy Capacity
+        self.battery = 0.1 * self.battery_capacity
+# #miles / kw*h
+# #miles / year -> year
 # #
-# #
-# # print()
-# # print( (Class_A.Dwell_Time(Port(pq.Quantity(150, 'kW')))).rescale("minute/month")  )
+#         # TODO: Add a power curve this is important because the power curve for a given vehicle heavily impacts the "performance" of its charge session
+#         #Power curve affects the power rate which in turn affects charge time
+#         #if the current capacity >=5%   and <= 40%:
+#         self.week_kw_usage_to_be_met = (self.mi_year * (1/self.mi_kWH)).rescale('(kW * hour) / week') * pq.week
 #
-Class_A = VehicleClass(0, pq.Quantity(3.181, 'miles / (kW * hour)') , pq.Quantity(15638, 'miles / year'), "Class 1-2")
-Class_B = VehicleClass(1, pq.Quantity(1.245, 'miles / (kW * hour)') , pq.Quantity(16200, 'miles / year'), 'Class 3-6')
-Class_C = VehicleClass(2, pq.Quantity(0.41, 'miles / (kW * hour)') , pq.Quantity(48750, 'miles / year'), 'Class 7-8')
+#         self.start_charge = self.battery * 0.8 # Vehicle is always between 10-90% SOC
+#         # TODO: Characterize charging behavior
 
-#print(Class_C.consumption())
-# print(Class_C.Dwell_Time(Port(pq.Quantity(150, 'kW'))))
-# print(Class_C.dwell(Port(pq.Quantity(150, 'kW'))))
-# print(Class_C.dwell(Port(pq.Quantity(350, 'kW'))))
-# print(Class_C.dwell(Port(pq.Quantity(1000, 'kW'))))
-# print(Class_C.dwell(Port(pq.Quantity(3500, 'kW'))))
+    def charge(self):
+        """
+        This method should determine how much energy kW the vehicle needs
+        :return: vehicle consumption
+        """
+        if self.className == 'Class 1-2' or self.className == 'Class 3-6':
+            return ((self.mi_year * (1/self.mi_kWH)).rescale('(kW * hour) / week') * pq.week) / 2
+        else:
+            return ((self.mi_year * (1/self.mi_kWH)).rescale('(kW * hour) / day') * pq.day)
 
-Class_A.info()
-Class_B.info()
-Class_C.info()
+
+
+
+'''
+13.459737530823492 h*kW/d
+35.62580730318138 h*kW/d
+325.54408943201827 h*kW/d
+
+Class C vehicles will have to charge once per day 
+
+
+
+How much does each vehicle need within a session consumption per day
+Class A needs 15%
+Class b needs 15%
+Class C needs 60%
+
+Dont generated vehicle if there is already a vehicle of that vehicle class still in the queue
+Is there a difference between a vehicle being serviced 
+
+'''
