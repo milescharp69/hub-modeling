@@ -44,6 +44,9 @@ class car(vehicleClass):
         else:
             return ((self.mi_year * (1/self.mi_kWH)).rescale('(kW * hour) / day') * pq.day)
 
+    def charge_time(self, port_used):
+        return
+
 
 
 

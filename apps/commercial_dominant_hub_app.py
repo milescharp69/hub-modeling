@@ -14,6 +14,7 @@ Class_C = VehicleClass(2, pq.Quantity(0.41, 'miles / (kW * hour)') , pq.Quantity
 
 Hub_Name = "Rural"
 Hub_Notional_Loading = [0.6,0.1]
+#np.array([Port(pq.Quantity(150, 'kW'),6), Port(pq.Quantity(350, 'kW'),18),Port(pq.Quantity(1000, 'kW'),16)])
 Hub_Ports = [Port(pq.Quantity(150, 'kW')) for i in range(2)]
 Hub_Vehicle_Mix = [0.4, 0.5, 0.1]
 

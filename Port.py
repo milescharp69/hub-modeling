@@ -2,7 +2,7 @@ import pandas as pd
 import quantities as pq
 
 class Port:
-    def __init__(self, Port_kW, Port_Efficiency=.975):
+    def __init__(self, Port_kW, Port_Efficiency=.975, id=None):
         self.Port_kW = Port_kW
         self.Port_Efficiency = Port_Efficiency
 
@@ -17,6 +17,9 @@ class Port:
         }
 
         self.time_free = pd.Timedelta(days=0)
+
+        #TODO: Add port id
+
 
     def __add__(self, other_port):
         """

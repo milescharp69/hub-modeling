@@ -1,15 +1,18 @@
-from Port import Port
-from VehicleClass import vehicleClass, car
-import numpy as np
-import quantities as pq
-import pandas as pd
 import timeit
+
+import numpy as np
+import pandas as pd
+import quantities as pq
+
+from Port import Port
+from VehicleClass import car
 
 # Global Variables
 OPERATION_HOURS = pq.Quantity(24, 'hour')
 NOTIONAL_HOURS = pq.Quantity([15, 9], 'hour')
 
 #TODO: Check units C:\Users\Miles\AppData\Local\Programs\Python\Python39\Lib\site-packages\quantities\units
+#This might vary per device that is running the code actually
 
 class Session:
     def __init__(self, hub, current_time):
@@ -36,7 +39,8 @@ class Session:
 
             self.power = self.port_used.Port_kW.magnitude
 
-            self.charge_time = float(pq.Quantity(self.consumption / self.power, 'hour').rescale('second').magnitude)
+            #Charge time is in seconds
+            self.charge_time = float(pq.Quantity(self.consumption / self.power, 'hour').rescale('second').magnitude) + 300
 
             # Rounded time
             #TODO: Future improvement- Make sure there is a reasonable amount of time between the sessions
@@ -49,15 +53,7 @@ class Session:
             self.port_used.status = False
 
 class Hub:
-    def __init__(self, hub_id, usage_factor, hub_ports, vehicle_mix, vehicle_types) -> None:
-        """
-        Constructor to generate a hub object
-        :param hub_id: string    Name for hub object
-        :param usage_factor:
-        :param hub_ports:
-        :param vehicle_mix:
-        :param vehicle_classes:
-        """
+    def __init__(self, hub_id, usage_factor, hub_ports, vehicle_mix) -> None:
         self.hub_id = hub_id
         self.usage_factor = usage_factor  # [7A-10P,10P-7A]
         self.hub_ports = hub_ports
@@ -74,6 +70,7 @@ class Hub:
             else:
                 self.port_types[float(port.Port_kW.magnitude)] += 1
 
+            port.id = str(int(port.Port_kW.magnitude)) + 'kWxx00' + str(self.port_types[float(port.Port_kW.magnitude)])
         self.ports_used = []
 
         #TODO:Rewrite the peak load
@@ -82,6 +79,74 @@ class Hub:
         # for i in range(0, len(self.hub_ports)):
         #     peak += (self.hub_ports[i].Port_kW.rescale('kW')).magnitude * self.hub_ports[i].Port_Efficiency
         # self.peak_load = pq.Quantity(peak, 'kW')
+
+    def vehicles_serviced(self):
+        # 30 sessions between 7am -10 pm
+        # 18 sessions between 10 pm -7am
+         # session per port per month
+        #Rural it would just be the total number of session * hub.vehicle_mix / vehicle_charge_time
+
+        types_of_ports = [Port(pq.Quantity(1000, 'kW')), Port(pq.Quantity(350, 'kW')), Port(pq.Quantity(300, 'kW')),
+                          Port(pq.Quantity(150, 'kW'))]
+
+        if 1000.0 in self.port_types.keys():
+            #Class C will use only 1000 kW
+
+            serviced_vehicles = [0,0,0]
+            for vehicle_num in range(len(self.vehicle_types)):
+                temp_serviced_vehicle = [] # len needs to be equal to len(port_types.keys())
+
+                total_time_need_for_allocation = (30 * self.usage_factor[0] + 18 * self.usage_factor[0]) * 30 * 30 * self.total_ports
+                current_allocated_time = 0
+                percentage_of_allocation = 0.0
+                percentage_of_allocation_needed = self.vehicle_mix[vehicle_num]
+
+                if percentage_of_allocation_needed == 0:
+                    break
+
+                if vehicle_num == 2:
+                    #Will only use 350kW and 1000kW ports
+                    total_minutes_1000kW = (30 * self.usage_factor[0] + 18 * self.usage_factor[0]) * 30 * 30 * self.port_types[1000.0]
+
+                    if round(total_minutes_1000kW / (30 * self.usage_factor[0] + 18 * self.usage_factor[0]) * 30 * 30 * self.total_ports, 2) > percentage_of_allocation_needed:
+                        print("COME BACK")
+                    elif round(total_minutes_1000kW / (30 * self.usage_factor[0] + 18 * self.usage_factor[0]) * 30 * 30 * self.total_ports, 2) < percentage_of_allocation_needed:
+                        percentage_of_allocation = round(total_minutes_1000kW / (30 * self.usage_factor[0] + 18 * self.usage_factor[0]) * 30 * 30 * self.total_ports, 2)
+                        percentage_of_allocation_needed = round(percentage_of_allocation_needed - percentage_of_allocation, 2)
+                        total_minutes_350kW = (30 * self.usage_factor[0] + 18 * self.usage_factor[0]) * 30 * 30 * \
+                                               self.port_types[350.0]
+
+
+                    total_minutes_1000kW / (30 * self.usage_factor[0] + 18 * self.usage_factor[0]) * 30 * 30 * self.port_types[350.0]
+
+        elif len(self.port_types.keys()) == 1: #only has 150 kW ports
+            serviced_vehicles = []
+            for vehicle_num in range(len(self.vehicle_types)):
+                total_minutes = (30 * self.usage_factor[0] + 18 * self.usage_factor[1]) * 30 * 30 * self.total_ports  \
+                                * self.vehicle_mix[vehicle_num]
+                serviced_vehicles.append(int(total_minutes / float(self.vehicle_types[vehicle_num].charge_time(Port(pq.Quantity(150, 'kW'))).magnitude)))
+
+            return serviced_vehicles
+
+        else:
+            #Class C will use only 300 kW
+            #Class B will use the rest of the 300 kW sessions that are open
+
+
+
+        for port in self.port_types.keys():
+
+
+        #same for urban community
+
+        #For urban multimodal class c gets 15% gets of all 300 sessions
+
+        #for commerical domminant
+
+
+        #Vehicle 1 can only us 150 kW ports
+        #Vehicle 2 can only us 150, 300, 350 kW ports
+        #Vehicle 3 can use all three ports
 
     def port_weights(self, vehicle):
         """
@@ -101,7 +166,7 @@ class Hub:
         np.random.shuffle(self.hub_ports)
 
         temp = True
-        if vehicle.Veh_Class == 2:
+        if vehicle.className ==  'Class 7-8':
             if 1000.0 in self.port_types.keys():
                 # Class 7-8 will not use 150 ports
                 for a in types_of_ports[0:2]:
@@ -125,7 +190,7 @@ class Hub:
                         return weights
             return None
 
-        elif vehicle.Veh_Class == 1:
+        elif vehicle.className ==  'Class 3-6':
             for a in types_of_ports[1:]:
                 if a.Port_kW in [self.hub_ports[n].Port_kW for n in range(len(self.hub_ports))]:
                     for port in self.hub_ports:
@@ -175,11 +240,13 @@ class Hub:
         df = pd.DataFrame()
         df['Index'] = []
         df['Vehicle'] = []
+        df['Sessions'] = []
         df['Consumption'] = []
         power_list = []
         previous_date = False
 
         #TODO: Perhaps instead of making a temp dataframe everytime just append the data to list and then make a data frame at the end
+
         for date in date_range:
             self.check_port_status(date)  # Refreshes Hub ports
             if (7 <= date.hour < 22) and date.minute % 15 == 0:
@@ -187,10 +254,15 @@ class Hub:
                     if np.random.choice([True, False], 1, p=[self.usage_factor[0], 1 - self.usage_factor[0]])[0]:
                         sub_session = Session(self, date)
                         if sub_session.status:
+                            if sub_session.vehicle.className == 'Class 7-8':
+                                sessioncount = 1/7
+                            else:
+                                sessioncount = 0.5
                             df_temp = pd.DataFrame(
                                 data={
                                     'Index': [date],
                                     'Vehicle': [sub_session.vehicle.className],
+                                    'Sessions': [sessioncount],
                                     'Consumption': [sub_session.consumption]
                                 }
                             )
@@ -200,10 +272,15 @@ class Hub:
                     if np.random.choice([True, False], 1, p=[self.usage_factor[1], 1 - self.usage_factor[1]])[0]:
                         sub_session = Session(self, date)
                         if sub_session.status:
+                            if sub_session.vehicle.className == 'Class 7-8':
+                                sessioncount = 1/7
+                            else:
+                                sessioncount = 0.5
                             df_temp = pd.DataFrame(
                                 data={
                                     'Index': [date],
                                     'Vehicle': [sub_session.vehicle.className],
+                                    'Sessions': [sessioncount],
                                     'Consumption': [sub_session.consumption]
                                 }
                             )
@@ -216,6 +293,7 @@ class Hub:
             previous_date = date
 
         df_temp1 = df.set_index('Index').groupby('Vehicle')['Sessions'].resample('M').sum().reset_index()
+
         df_temp2 = (df.set_index('Index').groupby('Vehicle')['Consumption'].resample('M').sum() * 0.001).reset_index()
         df_power = pd.DataFrame({
             'Index': date_range,
@@ -235,41 +313,149 @@ class Hub:
         port_data_df = port_data_df.reset_index().drop('level_1', axis=1).set_index('Port Type')
         return df_temp1.merge(df_temp2, on=["Index", "Vehicle"]), df_power, port_data_df
 
+    def graphic_sim(self, end_date):
+        date_range = pd.date_range(start='1/1/2022', end=end_date, freq='5T')
+        df = pd.DataFrame()
+        df["Date"] = date_range
+        port_dict = {}
+        for port in self.hub_ports:
+            port_dict[port] = []
 
-def test():
+        df.set_index("Date")
 
-    Hub_Name = "Urban Multimodal"
-    Hub_Notional_Loading = [0.7, 0.5]
-    Hub_Ports = [Port(pq.Quantity(150, 'kW')) for i in range(8)] + [Port(pq.Quantity(300, 'kW')) for i in range(2)]
-    Hub_Vehicle_Mix = [0.35, 0.5, 0.15]
+        data_df = pd.DataFrame()
+        data_df['Index'] = []
+        data_df['Vehicle'] = []
+        data_df['Sessions'] = []
+        data_df['Consumption'] = []
+        valid_sessions = []
+        power_list = []
+        previous_date = False
+        for date in date_range:
+            self.check_port_status(date)  # Refreshes Hub ports
+            if (7 <= date.hour < 22) and date.minute % 15 == 0:
+                for port in self.hub_ports:
+                    if np.random.choice([True, False], 1, p=[self.usage_factor[0], 1 - self.usage_factor[0]])[0]:
+                        sub_session = Session(self, date)
+                        if sub_session.status:
+                            if sub_session.vehicle.className == 'Class 7-8':
+                                sessioncount = 1/7
+                            else:
+                                sessioncount = 0.5
+                            df_temp = pd.DataFrame(
+                                data={
+                                    'Index': [date],
+                                    'Vehicle': [sub_session.vehicle.className],
+                                    'Sessions': [sessioncount],
+                                    'Consumption': [sub_session.consumption]
+                                }
+                            )
+                            data_df = pd.concat([data_df, df_temp], ignore_index=True)
+            elif (date.hour < 7 or date.hour >= 22) and date.minute % 15 == 0:
+                for port in self.hub_ports:
+                    if np.random.choice([True, False], 1, p=[self.usage_factor[1], 1 - self.usage_factor[1]])[0]:
+                        sub_session = Session(self, date)
+                        if sub_session.status:
+                            if sub_session.vehicle.className == 'Class 7-8':
+                                sessioncount = 1/7
+                            else:
+                                sessioncount = 0.5
+                            df_temp = pd.DataFrame(
+                                data={
+                                    'Index': [date],
+                                    'Vehicle': [sub_session.vehicle.className],
+                                    'Sessions': [sessioncount],
+                                    'Consumption': [sub_session.consumption]
+                                }
+                            )
+                            data_df = pd.concat([data_df, df_temp], ignore_index=True)
 
-    hub = Hub(Hub_Name, Hub_Notional_Loading, Hub_Ports, Hub_Vehicle_Mix)
+            power_list.append(self.current_power())
+            for port in self.hub_ports + self.ports_used:
+                port_dict[port].append(port.status)
 
-    return hub.simulate_hub_data('1/30/2022')
+            if previous_date is not False:
+                for port in self.hub_ports:
+                    port.time_free += abs(date - previous_date)
+            previous_date = date
+        col_names = [col.id for col in port_dict.keys()]
+        temp_df = pd.DataFrame().from_dict(port_dict)
+        temp_df.columns = col_names
+        df = df.join(temp_df)
+
+
+        #df.columns = [col.id for col in df.columns]
+        #print(df.head())
+
+        #df = df.style.applymap(lambda x: "background-color: red" if x is False else "background-color: white")
+
+        df_temp1 = data_df.set_index('Index').groupby('Vehicle')['Sessions'].resample('M').sum().reset_index()
+        df_temp2 = (data_df.set_index('Index').groupby('Vehicle')['Consumption'].resample('M').sum() * 0.001).reset_index()
+
+        df_power = pd.DataFrame({
+            'Index' : date_range,
+            'Power' : power_list
+        })
+        df_power = df_power.set_index('Index').resample('M').max().reset_index()
+
+
+        # with pd.ExcelWriter('output.xlsx') as writer:
+        #     df.to_excel(writer, sheet_name='Graphic Schedule')
+        #     df_temp1.merge(df_temp2, on=["Index", "Vehicle"]).to_excel(writer, sheet_name='Data')
+        #     df_power.to_excel(writer, sheet_name='Power')
 
 
 
-starttime = timeit.default_timer()
-print("The start time is :", starttime)
-data_set = []
-power_set = []
-portdata_set = []
-for runs in range(10):
-    data, power, portdata = test()
-    data_set.append(data)
-    power_set.append(power)
-    portdata_set.append(portdata)
+        return df
 
-print("The time difference is :", timeit.default_timer() - starttime)
+# def test():
+#
+#     Hub_Name = "Urban Multimodal"
+#     Hub_Notional_Loading = [0.7, 0.5]
+#     Hub_Ports = [Port(pq.Quantity(150, 'kW')) for i in range(8)] + [Port(pq.Quantity(300, 'kW')) for i in range(2)]
+#     Hub_Vehicle_Mix = [0.35, 0.5, 0.15]
+#
+#     hub = Hub(Hub_Name, Hub_Notional_Loading, Hub_Ports, Hub_Vehicle_Mix)
+#
+#     return hub.simulate_hub_data('1/30/2022')
+
+
+
+# starttime = timeit.default_timer()
+# print("The start time is :", starttime)
+# data_set = []
+# power_set = []
+# portdata_set = []
+# for runs in range(10):
+#     data, power, portdata = test()
+#     data_set.append(data)
+#     power_set.append(power)
+#     portdata_set.append(portdata)
+#
+# print("The time difference is :", timeit.default_timer() - starttime)
+
+# pd.set_option('display.max_columns', 100)  # or 1000
+# pd.set_option('display.max_rows', 100)  # or 1000
+# pd.set_option('display.max_colwidth', 199)  # or 199
+#
+#
+# with pd.ExcelWriter('output.xlsx') as writer:
+#     (pd.concat(data_set).set_index('Index').groupby('Vehicle')['Sessions'].describe()).T.to_excel(writer, sheet_name='Sessions')
+#     (pd.concat(data_set).set_index('Index').groupby('Vehicle')['Consumption'].describe()).T.to_excel(writer, sheet_name='Consumption')
+#     (pd.concat(power_set).set_index('Index').describe()).T.to_excel(writer, sheet_name='Power')
+#     pd.concat(portdata_set).groupby(['Port Type']).describe().T.to_excel(writer, sheet_name='Port Usage')
+
 
 pd.set_option('display.max_columns', 100)  # or 1000
 pd.set_option('display.max_rows', 100)  # or 1000
 pd.set_option('display.max_colwidth', 199)  # or 199
 
+Hub_Name = "Rural"
+Hub_Notional_Loading = [0.6,0.1]
+Hub_Ports = [Port(pq.Quantity(150, 'kW')) for i in range(2)]
+Hub_Vehicle_Mix = [0.4, 0.5, 0.1]
+hub = Hub(Hub_Name, Hub_Notional_Loading, Hub_Ports, Hub_Vehicle_Mix)
 
-with pd.ExcelWriter('output.xlsx') as writer:
-    (pd.concat(data_set).set_index('Index').groupby('Vehicle')['Sessions'].describe()).T.to_excel(writer, sheet_name='Sessions')
-    (pd.concat(data_set).set_index('Index').groupby('Vehicle')['Consumption'].describe()).T.to_excel(writer, sheet_name='Consumption')
-    (pd.concat(power_set).set_index('Index').describe()).T.to_excel(writer, sheet_name='Power')
-    pd.concat(portdata_set).groupby(['Port Type']).describe().T.to_excel(writer, sheet_name='Port Usage')
 
+idk = hub.graphic_sim('1/30/2022')
+print(idk)
