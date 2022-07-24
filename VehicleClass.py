@@ -45,7 +45,14 @@ class car(vehicleClass):
             return ((self.mi_year * (1/self.mi_kWH)).rescale('(kW * hour) / day') * pq.day)
 
     def charge_time(self, port_used):
-        return
+        """
+        have the return do magnitude and float
+        :param port_used:
+        :return:
+        """
+        #TODO: fix
+
+        return float((((self.mi_year * (1/self.mi_kWH)).rescale('(kW * hour) / month')  / port_used.Port_kW) * pq.month).rescale("minute").magnitude)
 
 
 

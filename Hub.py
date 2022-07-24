@@ -7,6 +7,8 @@ import quantities as pq
 from Port import Port
 from VehicleClass import car
 
+import streamlit as st
+
 # Global Variables
 OPERATION_HOURS = pq.Quantity(24, 'hour')
 NOTIONAL_HOURS = pq.Quantity([15, 9], 'hour')
@@ -40,7 +42,7 @@ class Session:
             self.power = self.port_used.Port_kW.magnitude
 
             #Charge time is in seconds
-            self.charge_time = float(pq.Quantity(self.consumption / self.power, 'hour').rescale('second').magnitude) + 300
+            self.charge_time = float(pq.Quantity(self.consumption / self.power, 'hour').rescale('second').magnitude) + 360
 
             # Rounded time
             #TODO: Future improvement- Make sure there is a reasonable amount of time between the sessions
@@ -53,6 +55,7 @@ class Session:
             self.port_used.status = False
 
 class Hub:
+
     def __init__(self, hub_id, usage_factor, hub_ports, vehicle_mix) -> None:
         self.hub_id = hub_id
         self.usage_factor = usage_factor  # [7A-10P,10P-7A]
@@ -85,20 +88,23 @@ class Hub:
         # 18 sessions between 10 pm -7am
          # session per port per month
         #Rural it would just be the total number of session * hub.vehicle_mix / vehicle_charge_time
-
-        types_of_ports = [Port(pq.Quantity(1000, 'kW')), Port(pq.Quantity(350, 'kW')), Port(pq.Quantity(300, 'kW')),
-                          Port(pq.Quantity(150, 'kW'))]
+        serviced_vehicles = [0, 0, 0]
 
         if 1000.0 in self.port_types.keys():
             #Class C will use only 1000 kW
 
-            serviced_vehicles = [0,0,0]
-            for vehicle_num in range(len(self.vehicle_types)):
-                temp_serviced_vehicle = [] # len needs to be equal to len(port_types.keys())
 
-                total_time_need_for_allocation = (30 * self.usage_factor[0] + 18 * self.usage_factor[0]) * 30 * 30 * self.total_ports
-                current_allocated_time = 0
-                percentage_of_allocation = 0.0
+            total_time = (30 * self.usage_factor[0] + 18 * self.usage_factor[0]) * 30 * 30 * self.total_ports
+            total_minutes_1000kW = (30 * self.usage_factor[0] + 18 * self.usage_factor[0]) * 30 * 30 * self.port_types[
+                1000.0]
+            total_minutes_350kW = (30 * self.usage_factor[0] + 18 * self.usage_factor[0]) * 30 * 30 * self.port_types[
+                350.0]
+            total_minutes_150kW = (30 * self.usage_factor[0] + 18 * self.usage_factor[0]) * 30 * 30 * self.port_types[
+                150.0]
+            total_time_port = [total_minutes_150kW, total_minutes_350kW, total_minutes_1000kW]
+            for vehicle_num in [2,1,0]:
+                total_time_needed_for_allocation = (30 * self.usage_factor[0] + 18 * self.usage_factor[0]) * 30 * 30 * self.total_ports * self.vehicle_mix[vehicle_num]
+
                 percentage_of_allocation_needed = self.vehicle_mix[vehicle_num]
 
                 if percentage_of_allocation_needed == 0:
@@ -106,47 +112,143 @@ class Hub:
 
                 if vehicle_num == 2:
                     #Will only use 350kW and 1000kW ports
-                    total_minutes_1000kW = (30 * self.usage_factor[0] + 18 * self.usage_factor[0]) * 30 * 30 * self.port_types[1000.0]
+                    if total_time_needed_for_allocation < total_time_port[2]:
+                        total_minutes_1000kW = total_time_needed_for_allocation
+                        total_time_port[2] -= total_time_needed_for_allocation
+                        serviced_vehicles[vehicle_num] = int(total_minutes_1000kW / self.vehicle_types[
+                            vehicle_num].charge_time(Port(pq.Quantity(1000, 'kW'))))
 
-                    if round(total_minutes_1000kW / (30 * self.usage_factor[0] + 18 * self.usage_factor[0]) * 30 * 30 * self.total_ports, 2) > percentage_of_allocation_needed:
-                        print("COME BACK")
-                    elif round(total_minutes_1000kW / (30 * self.usage_factor[0] + 18 * self.usage_factor[0]) * 30 * 30 * self.total_ports, 2) < percentage_of_allocation_needed:
-                        percentage_of_allocation = round(total_minutes_1000kW / (30 * self.usage_factor[0] + 18 * self.usage_factor[0]) * 30 * 30 * self.total_ports, 2)
-                        percentage_of_allocation_needed = round(percentage_of_allocation_needed - percentage_of_allocation, 2)
-                        total_minutes_350kW = (30 * self.usage_factor[0] + 18 * self.usage_factor[0]) * 30 * 30 * \
-                                               self.port_types[350.0]
+                    elif total_time_needed_for_allocation > total_time_port[2]:
+                        serviced_vehicles[vehicle_num] = int(total_time_port[2] / self.vehicle_types[
+                            vehicle_num].charge_time(Port(pq.Quantity(1000, 'kW'))))
+                        total_time_needed_for_allocation -= total_time_port[2]
+                        total_time_port[2] = 0
 
+                        if total_time_needed_for_allocation < total_time_port[1]:
+                            total_minutes_350kW = total_time_needed_for_allocation
+                            total_time_port[1] -= total_time_needed_for_allocation
+                            serviced_vehicles[vehicle_num] = int(total_minutes_350kW / self.vehicle_types[
+                                vehicle_num].charge_time(Port(pq.Quantity(350, 'kW'))))
+                        else:
+                            serviced_vehicles[vehicle_num] = int(total_time_port[1] / self.vehicle_types[
+                                vehicle_num].charge_time(Port(pq.Quantity(350, 'kW'))))
+                            total_time_port[1] = 0
+                    else:
+                        serviced_vehicles[vehicle_num] = int(total_time_port[2]/ self.vehicle_types[
+                            vehicle_num].charge_time(Port(pq.Quantity(1000, 'kW'))))
+                        total_time_port[2] = 0
 
-                    total_minutes_1000kW / (30 * self.usage_factor[0] + 18 * self.usage_factor[0]) * 30 * 30 * self.port_types[350.0]
+                elif vehicle_num == 1:
+                    #only use 350kW and 150kW
+                    #from how many 350kW are left
+                    if total_time_needed_for_allocation < total_time_port[1]:
+                        total_minutes_350kW = total_time_needed_for_allocation
+                        serviced_vehicles[vehicle_num] += int(total_minutes_350kW / self.vehicle_types[
+                            vehicle_num].charge_time(Port(pq.Quantity(350, 'kW'))))
+                        total_time_port[1] -= total_minutes_350kW
+                        break
+                    elif total_time_needed_for_allocation > total_time_port[1]:
+                        serviced_vehicles[vehicle_num] += int(total_time_port[1] / self.vehicle_types[
+                            vehicle_num].charge_time(Port(pq.Quantity(350, 'kW'))))
+                        total_time_needed_for_allocation  -= total_time_port[1]
+                        total_time_port[1] = 0
 
-        elif len(self.port_types.keys()) == 1: #only has 150 kW ports
-            serviced_vehicles = []
+                        if total_time_needed_for_allocation < total_time_port[0]:
+                            total_minutes_150kW  = total_time_needed_for_allocation
+                            serviced_vehicles[vehicle_num] += int(total_minutes_150kW / self.vehicle_types[
+                                vehicle_num].charge_time(Port(pq.Quantity(150, 'kW'))))
+                            total_time_port[0] -= total_minutes_150kW
+                        else:
+                            serviced_vehicles[vehicle_num] += int(total_time_port[0] / self.vehicle_types[
+                                vehicle_num].charge_time(Port(pq.Quantity(150, 'kW'))))
+                            total_time_port[0] = 0
+                    else:
+                        serviced_vehicles[vehicle_num] += int(total_time_port[1] / self.vehicle_types[
+                            vehicle_num].charge_time(Port(pq.Quantity(350, 'kW'))))
+                        total_time_port[1] = 0
+
+                else:
+                    #only use 150kW maybe also have it use 350kW ports
+                    if total_time_needed_for_allocation < total_minutes_150kW:
+                        total_minutes_150kW = total_time_needed_for_allocation
+                        total_time_port[0] -= total_time_needed_for_allocation
+                        serviced_vehicles[vehicle_num] += int(total_minutes_150kW / self.vehicle_types[
+                            vehicle_num].charge_time(Port(pq.Quantity(150, 'kW'))))
+                    else:
+                        serviced_vehicles[vehicle_num] += int(total_minutes_150kW / self.vehicle_types[
+                            vehicle_num].charge_time(Port(pq.Quantity(150, 'kW'))))
+                        total_time_port[0] = 0
+        elif 1000.0 not in self.port_types.keys()  and 300.0 not in self.port_types.keys(): #only has 150 kW ports
+
             for vehicle_num in range(len(self.vehicle_types)):
                 total_minutes = (30 * self.usage_factor[0] + 18 * self.usage_factor[1]) * 30 * 30 * self.total_ports  \
                                 * self.vehicle_mix[vehicle_num]
-                serviced_vehicles.append(int(total_minutes / float(self.vehicle_types[vehicle_num].charge_time(Port(pq.Quantity(150, 'kW'))).magnitude)))
-
-            return serviced_vehicles
-
+                serviced_vehicles[vehicle_num] += (int(total_minutes /self.vehicle_types[vehicle_num].charge_time(Port(pq.Quantity(150, 'kW')))))
         else:
+            serviced_vehicles = [0, 0, 0]
+            total_time = (30 * self.usage_factor[0] + 18 * self.usage_factor[0]) * 30 * 30 * self.total_ports
+            total_minutes_300kW = (30 * self.usage_factor[0] + 18 * self.usage_factor[0]) * 30 * 30 * self.port_types[
+                300.0]
+            total_minutes_150kW = (30 * self.usage_factor[0] + 18 * self.usage_factor[0]) * 30 * 30 * self.port_types[
+                150.0]
+            total_time_port = [total_minutes_150kW, total_minutes_300kW]
+            #Has only 300kW and 150kW
             #Class C will use only 300 kW
             #Class B will use the rest of the 300 kW sessions that are open
+            for vehicle_num in [2, 1, 0]:
+                total_time_needed_for_allocation = (30 * self.usage_factor[0] + 18 * self.usage_factor[
+                    0]) * 30 * 30 * self.total_ports * self.vehicle_mix[vehicle_num]
+                if vehicle_num == 2:
+                    #Will only us 300 kW port
+                    if total_time_needed_for_allocation < total_time_port[1]:
+                        total_minutes_300kW = total_time_needed_for_allocation
+                        total_time_port[1] -= total_minutes_300kW
+                        serviced_vehicles[vehicle_num] += (int(total_minutes_300kW / self.vehicle_types[vehicle_num].charge_time(
+                            Port(pq.Quantity(300, 'kW')))))
+                    else:
+                        serviced_vehicles[vehicle_num] += (int(total_time_port[1] / self.vehicle_types[vehicle_num].charge_time(
+                            Port(pq.Quantity(300, 'kW')))))
+                        total_time_port[1] = 0
 
+                elif vehicle_num == 1:
+                    if total_time_needed_for_allocation < total_time_port[1]:
+                        total_minutes_300kW = total_time_needed_for_allocation
+                        total_time_port[1] -= total_minutes_300kW
+                        serviced_vehicles[vehicle_num] += (int(total_minutes_300kW / self.vehicle_types[vehicle_num].charge_time(
+                            Port(pq.Quantity(300, 'kW')))))
+                    elif total_time_needed_for_allocation > total_time_port[1]:
+                        serviced_vehicles[vehicle_num] += (int(total_time_port[1] / self.vehicle_types[vehicle_num].charge_time(
+                            Port(pq.Quantity(300, 'kW')))))
 
+                        total_time_needed_for_allocation -= total_time_port[1]
+                        total_time_port[1] = 0
 
-        for port in self.port_types.keys():
-
-
-        #same for urban community
-
-        #For urban multimodal class c gets 15% gets of all 300 sessions
-
-        #for commerical domminant
-
-
-        #Vehicle 1 can only us 150 kW ports
-        #Vehicle 2 can only us 150, 300, 350 kW ports
-        #Vehicle 3 can use all three ports
+                        if total_time_needed_for_allocation < total_time_port[0]:
+                            total_minutes_150kW = total_time_needed_for_allocation
+                            total_time_port[0] -= total_minutes_150kW
+                            serviced_vehicles[vehicle_num] += (
+                                int(total_minutes_150kW / self.vehicle_types[vehicle_num].charge_time(
+                                    Port(pq.Quantity(150, 'kW')))))
+                        else:
+                            serviced_vehicles[vehicle_num] += (
+                                int(total_time_port[0] / self.vehicle_types[vehicle_num].charge_time(
+                                    Port(pq.Quantity(150, 'kW')))))
+                            total_time_port[0] = 0
+                    else:
+                        serviced_vehicles[vehicle_num] += (int(total_time_port[1] / self.vehicle_types[vehicle_num].charge_time(
+                            Port(pq.Quantity(300, 'kW')))))
+                        total_time_port[1] = 0
+                else:
+                    if total_time_needed_for_allocation < total_time_port[0]:
+                        total_minutes_150kW = total_time_needed_for_allocation
+                        total_time_port[0] -= total_minutes_150kW
+                        serviced_vehicles[vehicle_num] += (int(total_minutes_150kW / self.vehicle_types[vehicle_num].charge_time(
+                            Port(pq.Quantity(150, 'kW')))))
+                    else:
+                        serviced_vehicles[vehicle_num] += (int(total_time_port[0] / self.vehicle_types[vehicle_num].charge_time(
+                            Port(pq.Quantity(150, 'kW')))))
+                        total_time_port[0] = 0
+        return serviced_vehicles
 
     def port_weights(self, vehicle):
         """
@@ -333,15 +435,15 @@ class Hub:
         previous_date = False
         for date in date_range:
             self.check_port_status(date)  # Refreshes Hub ports
-            if (7 <= date.hour < 22) and date.minute % 15 == 0:
+            if (7 <= date.hour < 22) and date.minute % 30 == 0:
                 for port in self.hub_ports:
                     if np.random.choice([True, False], 1, p=[self.usage_factor[0], 1 - self.usage_factor[0]])[0]:
                         sub_session = Session(self, date)
                         if sub_session.status:
                             if sub_session.vehicle.className == 'Class 7-8':
-                                sessioncount = 1/7
+                                sessioncount = (1/7) * (1/4)
                             else:
-                                sessioncount = 0.5
+                                sessioncount = (0.5)* (1/4)
                             df_temp = pd.DataFrame(
                                 data={
                                     'Index': [date],
@@ -351,15 +453,15 @@ class Hub:
                                 }
                             )
                             data_df = pd.concat([data_df, df_temp], ignore_index=True)
-            elif (date.hour < 7 or date.hour >= 22) and date.minute % 15 == 0:
+            elif (date.hour < 7 or date.hour >= 22) and date.minute % 30 == 0:
                 for port in self.hub_ports:
                     if np.random.choice([True, False], 1, p=[self.usage_factor[1], 1 - self.usage_factor[1]])[0]:
                         sub_session = Session(self, date)
                         if sub_session.status:
                             if sub_session.vehicle.className == 'Class 7-8':
-                                sessioncount = 1/7
+                                sessioncount = (1/7) * (1/4)
                             else:
-                                sessioncount = 0.5
+                                sessioncount = 0.5 * (1/4)
                             df_temp = pd.DataFrame(
                                 data={
                                     'Index': [date],
@@ -383,12 +485,6 @@ class Hub:
         temp_df.columns = col_names
         df = df.join(temp_df)
 
-
-        #df.columns = [col.id for col in df.columns]
-        #print(df.head())
-
-        #df = df.style.applymap(lambda x: "background-color: red" if x is False else "background-color: white")
-
         df_temp1 = data_df.set_index('Index').groupby('Vehicle')['Sessions'].resample('M').sum().reset_index()
         df_temp2 = (data_df.set_index('Index').groupby('Vehicle')['Consumption'].resample('M').sum() * 0.001).reset_index()
 
@@ -404,9 +500,11 @@ class Hub:
         #     df_temp1.merge(df_temp2, on=["Index", "Vehicle"]).to_excel(writer, sheet_name='Data')
         #     df_power.to_excel(writer, sheet_name='Power')
 
+        # st.dataframe(df_temp1)
+        # st.dataframe(df_temp2)
+        # st.dataframe(df_power)
 
-
-        return df
+        return df, df_temp1, df_temp2, df_power
 
 # def test():
 #
@@ -445,17 +543,79 @@ class Hub:
 #     (pd.concat(power_set).set_index('Index').describe()).T.to_excel(writer, sheet_name='Power')
 #     pd.concat(portdata_set).groupby(['Port Type']).describe().T.to_excel(writer, sheet_name='Port Usage')
 
+# Hub_Name = "Rural"
+# Hub_Notional_Loading = [0.6,0.1]
+# Hub_Ports = [Port(pq.Quantity(150, 'kW')) for i in range(2)]
+# Hub_Vehicle_Mix = [0.4, 0.5, 0.1]
+# hub = Hub(Hub_Name, Hub_Notional_Loading, Hub_Ports, Hub_Vehicle_Mix)
+#
+#
+# idk = hub.graphic_sim('1/30/2022')
+# print(idk)
 
-pd.set_option('display.max_columns', 100)  # or 1000
-pd.set_option('display.max_rows', 100)  # or 1000
-pd.set_option('display.max_colwidth', 199)  # or 199
 
 Hub_Name = "Rural"
-Hub_Notional_Loading = [0.6,0.1]
+Hub_Notional_Loading = [0.6, 0.1]
 Hub_Ports = [Port(pq.Quantity(150, 'kW')) for i in range(2)]
 Hub_Vehicle_Mix = [0.4, 0.5, 0.1]
+
 hub = Hub(Hub_Name, Hub_Notional_Loading, Hub_Ports, Hub_Vehicle_Mix)
 
+df, df1, df2, df3 = hub.graphic_sim('1/30/2022')
 
-idk = hub.graphic_sim('1/30/2022')
-print(idk)
+#df_styled = df.style.applymap(lambda x: "background-color: red" if x is False else "background-color: white")
+#df_styled.to_excel('output.xlsx')
+
+df.drop(range(0,264), inplace=True)
+df.drop(df.columns[2], axis=1, inplace=True)
+df = df.set_index(pd.DatetimeIndex(df['Date']))
+df.drop(df.columns[0], axis=1, inplace=True)
+
+
+df_during227 = [] #108
+
+df_during722 = [] #180
+
+count = 0
+
+start_val = 0
+end_val = 108
+adder = 180
+
+while count < 20:
+    if adder == 180:
+        tempdf = df.iloc[start_val:end_val]
+        df_during227.append(tempdf)
+        start_val = end_val
+        end_val += adder
+        adder = 108
+        count += 1
+        continue
+
+    if adder == 108:
+        tempdf = df.iloc[start_val:end_val]
+        df_during722.append(tempdf)
+        start_val = end_val
+        end_val += adder
+        adder = 180
+    count += 1
+
+
+loadingpercent_227 = []
+loadingpercent_722 = []
+
+for df in df_during227:
+    try:
+        true_count, false_count = df_during227[0].value_counts().tolist()
+    except:
+        print(df_during227[0].value_counts())
+    loadingpercent_227.append(false_count/ (true_count + false_count))
+
+for df in df_during722:
+    try:
+        true_count, false_count = df_during722[0].value_counts().tolist()
+    except:
+        print(df_during722[0].value_counts())
+    loadingpercent_722.append(false_count/ (true_count + false_count))
+
+print('g')

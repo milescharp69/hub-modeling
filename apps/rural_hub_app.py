@@ -11,15 +11,16 @@ from st_aggrid import AgGrid
 from VehicleClass import car
 
 
-Hub_Name = "Rural"
-Hub_Notional_Loading = [0.6,0.1]
-Hub_Ports = [Port(pq.Quantity(150, 'kW')) for i in range(2)]
-Hub_Vehicle_Mix = [0.4, 0.5, 0.1]
-hub = Hub(Hub_Name, Hub_Notional_Loading, Hub_Ports, Hub_Vehicle_Mix)
+
 
 
 def app():
+    Hub_Name = "Rural"
+    Hub_Notional_Loading = [0.6, 0.1]
+    Hub_Ports = [Port(pq.Quantity(150, 'kW')) for i in range(2)]
+    Hub_Vehicle_Mix = [0.4, 0.5, 0.1]
 
+    hub = Hub(Hub_Name, Hub_Notional_Loading, Hub_Ports, Hub_Vehicle_Mix)
 
     # Sidebar code
     classmix_expander = st.sidebar.expander("Vehicle Class Mix Sliders")
@@ -52,19 +53,19 @@ def app():
     metric_container_info_col1, metric_container_info_col2, metric_container_info_col3, metric_container_info_col4, metric_container_info_col5 = metric_container_info.columns(
         [1, 1, 1, 1, 1])
 
-    metric_container_info_col1.metric("Usage 7am-10pm", hub.vehicle_mix[0],
+    metric_container_info_col1.metric("Usage 7am-10pm", str(Hub_Notional_Loading[0]),
                                       round(abs(hub.usage_factor[0] - st.session_state.usage_a_slider), 2))
-    metric_container_info_col2.metric("Usage 10pm-7am", hub.vehicle_mix[1],
-                                      round(abs(hub.usage_factor[0] - st.session_state.usage_b_slider), 2))
+    metric_container_info_col2.metric("Usage 10pm-7am", str(Hub_Notional_Loading[1]),
+                                      round(abs(hub.usage_factor[1] - st.session_state.usage_b_slider), 2))
 
     metric_container_info_col3.metric("Class A Mix", str(Hub_Vehicle_Mix[0]),
                                       round(abs(hub.vehicle_mix[0] - st.session_state.class_a_slider), 2))
     metric_container_info_col4.metric("Class B Mix", str(Hub_Vehicle_Mix[1]),
-                                      round(abs(hub.vehicle_mix[0] - st.session_state.class_b_slider), 2))
+                                      round(abs(hub.vehicle_mix[1] - st.session_state.class_b_slider), 2))
     metric_container_info_col5.metric("Class C Mix", str(Hub_Vehicle_Mix[2]),
-                                      round(abs(hub.vehicle_mix[0] - st.session_state.class_c_slider), 2))
+                                      round(abs(hub.vehicle_mix[2] - st.session_state.class_c_slider), 2))
 
-    hub_copy = Hub(Hub_Name, [st.session_state.usage_a_slider, st.session_state.usage_a_slider],
+    hub_copy = Hub(Hub_Name, [st.session_state.usage_a_slider, st.session_state.usage_b_slider],
                    Hub_Ports, [st.session_state.class_a_slider, st.session_state.class_b_slider,
                                st.session_state.class_c_slider])
 
@@ -117,121 +118,135 @@ def app():
     # Figures
 
     bargraphexpander = st.expander("Vehicle Throughput")
-
+    hub_max = Hub(Hub_Name, [1, 1], Hub_Ports, Hub_Vehicle_Mix)
+    hub_serviced_vehicles = hub.vehicles_serviced()
+    hub_max_serviced_vehicles = hub_max.vehicles_serviced()
+    hub_copy_serviced_vehicles = hub_copy.vehicles_serviced()
 
     ####################
     # Bar graph
-    # hub_max = Hub(Hub_Name, [0,0], Hub_Ports, Hub_Vehicle_Mix)
     #
-    # if hub_changed:
-    #     BARGRAPH_xaxislabels = ["Typical Use", "Max Use", "Custom Use"]
-    #     BARGRAPH_seriesdata = [{
-    #         "name": "Class A",
-    #         "type": 'bar',
-    #         "stack": 'Ad',
-    #         "emphasis": {
-    #             "focus": 'series'
-    #         },
-    #         "data": [hub.Vehicles_Serviced_Per_Month_By_Class(0),
-    #                  copyDefinedHubs.Vehicles_Serviced_Per_Month_By_Class(0),
-    #                  pagedata.copyhub.Vehicles_Serviced_Per_Month_By_Class(0)]
-    #     },
-    #         {
-    #             "name": "Class B",
-    #             "type": 'bar',
-    #             "stack": 'Ad',
-    #             "emphasis": {
-    #                 "focus": 'series'
-    #             },
-    #             "data": [hub.Vehicles_Serviced_Per_Month_By_Class(1),
-    #                      copyDefinedHubs.Vehicles_Serviced_Per_Month_By_Class(1),
-    #                      pagedata.copyhub.Vehicles_Serviced_Per_Month_By_Class(1)]
-    #         },
-    #         {
-    #             "name": "Class c",
-    #             "type": 'bar',
-    #             "stack": 'Ad',
-    #             "emphasis": {
-    #                 "focus": 'series'
-    #             },
-    #             "data": [hub.Vehicles_Serviced_Per_Month_By_Class(2),
-    #                      copyDefinedHubs.Vehicles_Serviced_Per_Month_By_Class(2),
-    #                      pagedata.copyhub.Vehicles_Serviced_Per_Month_By_Class(2)]
-    #         }
     #
-    #     ]
-    # else:
-    #     BARGRAPH_xaxislabels = ["Typical Use", "Max Use"]
-    #     BARGRAPH_seriesdata = [{
-    #         "name": "Class A",
-    #         "type": 'bar',
-    #         "stack": 'Ad',
-    #         "emphasis": {
-    #             "focus": 'series'
-    #         },
-    #         "data": [hub.Vehicles_Serviced_Per_Month_By_Class(0),
-    #                  copyDefinedHubs.Vehicles_Serviced_Per_Month_By_Class(0),
-    #                  pagedata.copyhub.Vehicles_Serviced_Per_Month_By_Class(0)]
-    #     },
-    #         {
-    #             "name": "Class B",
-    #             "type": 'bar',
-    #             "stack": 'Ad',
-    #             "emphasis": {
-    #                 "focus": 'series'
-    #             },
-    #             "data": [hub.Vehicles_Serviced_Per_Month_By_Class(1),
-    #                      copyDefinedHubs.Vehicles_Serviced_Per_Month_By_Class(1),
-    #                      pagedata.copyhub.Vehicles_Serviced_Per_Month_By_Class(1)]
-    #         },
-    #         {
-    #             "name": "Class c",
-    #             "type": 'bar',
-    #             "stack": 'Ad',
-    #             "emphasis": {
-    #                 "focus": 'series'
-    #             },
-    #             "data": [hub.Vehicles_Serviced_Per_Month_By_Class(2),
-    #                      copyDefinedHubs.Vehicles_Serviced_Per_Month_By_Class(2),
-    #                      pagedata.copyhub.Vehicles_Serviced_Per_Month_By_Class(2)]
-    #         }
-    #
-    #     ]
-    #
-    # option = {
-    #     "tooltip": {
-    #         "trigger": 'axis',
-    #         "axisPointer": {
-    #             "type": 'shadow'
-    #         }
-    #     },
-    #     "legend": {},
-    #     "grid": {
-    #         "left": '3%',
-    #         "right": '4%',
-    #         "bottom": '3%',
-    #         "containLabel": "true"
-    #     },
-    #     "xAxis": [
-    #         {
-    #             "name": 'Hub Type',
-    #             "type": 'category',
-    #             "data": BARGRAPH_xaxislabels
-    #         }
-    #     ],
-    #     "yAxis": [
-    #         {
-    #             "name": 'Vehicle Throughput',
-    #             "type": 'value'
-    #         }
-    #     ],
-    #     "series": BARGRAPH_seriesdata
-    # }
-    #
-    # with bargraphexpander:
-    #     st_echarts(options=option, use_container_width=True)
-    df = hub.graphic_sim('1/30/2022')
+    if hub_changed:
+        BARGRAPH_xaxislabels = ["Typical Use", "Max Use", "Custom Use"]
+        BARGRAPH_seriesdata = [{
+            "name": "Class A",
+            "type": 'bar',
+            "stack": 'Ad',
+            "emphasis": {
+                "focus": 'series'
+            },
+            "data": [hub_serviced_vehicles[0], hub_max_serviced_vehicles[0], hub_copy_serviced_vehicles[0]]
+        },
+            {
+                "name": "Class B",
+                "type": 'bar',
+                "stack": 'Ad',
+                "emphasis": {
+                    "focus": 'series'
+                },
+                "data": [hub_serviced_vehicles[1], hub_max_serviced_vehicles[1], hub_copy_serviced_vehicles[1]]
+            },
+            {
+                "name": "Class c",
+                "type": 'bar',
+                "stack": 'Ad',
+                "emphasis": {
+                    "focus": 'series'
+                },
+                "data": [hub_serviced_vehicles[2], hub_max_serviced_vehicles[2], hub_copy_serviced_vehicles[2]]
+            }
+
+        ]
+    else:
+        BARGRAPH_xaxislabels = ["Typical Use", "Max Use"]
+        BARGRAPH_seriesdata = [{
+            "name": "Class A",
+            "type": 'bar',
+            "stack": 'Ad',
+            "emphasis": {
+                "focus": 'series'
+            },
+            "data": [hub_serviced_vehicles[0], hub_max_serviced_vehicles[0]]
+        },
+            {
+                "name": "Class B",
+                "type": 'bar',
+                "stack": 'Ad',
+                "emphasis": {
+                    "focus": 'series'
+                },
+                "data": [hub_serviced_vehicles[1], hub_max_serviced_vehicles[1]]
+            },
+            {
+                "name": "Class c",
+                "type": 'bar',
+                "stack": 'Ad',
+                "emphasis": {
+                    "focus": 'series'
+                },
+                "data": [hub_serviced_vehicles[2], hub_max_serviced_vehicles[2]]
+            }
+
+        ]
+
+    option = {
+        "tooltip": {
+            "trigger": 'axis',
+            "axisPointer": {
+                "type": 'shadow'
+            }
+        },
+        "legend": {},
+        "grid": {
+            "left": '3%',
+            "right": '4%',
+            "bottom": '3%',
+            "containLabel": "true"
+        },
+        "xAxis": [
+            {
+                "name": 'Hub Type',
+                "type": 'category',
+                "data": BARGRAPH_xaxislabels
+            }
+        ],
+        "yAxis": [
+            {
+                "name": 'Vehicle Throughput',
+                "type": 'value'
+            }
+        ],
+        "series": BARGRAPH_seriesdata
+    }
+
+    #TODO:come back tot this
+    test = bargraphexpander.empty()
+    with test:
+
+        st_echarts(options=option)
+
+    #Cache this somehow
+    #Throw in the rest of the data
+    hub_ori = Hub(Hub_Name, Hub_Notional_Loading, Hub_Ports, Hub_Vehicle_Mix)
+    df, df1, df2, df3 = hub_copy.graphic_sim('1/30/2022')
     df_styled = df.style.applymap(lambda x: "background-color: red" if x is False else "background-color: white")
     schedule_expander = st.expander("Hub Schedule")
     schedule_expander.dataframe(df_styled)
     AgGrid(df)
+
+
+
+    # df1, df2, df3 = hub.simulate_hub_data('1/30/2022')
+    st.dataframe(df1)
+    st.dataframe(df2)
+    st.dataframe(df3)
+
+
+
+    st.download_button(
+        label="Download schedule",
+        data= df_styled.to_excel("output.xlsx"),
+        file_name='output.xlsx"',
+        mime = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )

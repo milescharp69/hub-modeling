@@ -14,7 +14,7 @@ Hub_Vehicle_Mix = [0.4, 0.5, 0.1]
 hub = Hub(Hub_Name, Hub_Notional_Loading, Hub_Ports, Hub_Vehicle_Mix)
 
 def app():
-    st.write('GEGEWGEW')
+
     class_a_mix = st.slider('Vehicle Class A Mix', 0.0, 1.0, Hub_Vehicle_Mix[0], step=0.05,
                                           key="class_a_slider")
 
