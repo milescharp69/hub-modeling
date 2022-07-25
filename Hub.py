@@ -22,6 +22,8 @@ class Session:
 
         self.vehicle = np.random.choice(hub.vehicle_types, 1, p=hub.vehicle_mix)[0]
 
+
+
         port_weight = hub.port_weights(self.vehicle)
         self.port_weight = port_weight
 
@@ -51,6 +53,22 @@ class Session:
             self.end_time = self.port_used.open_date
 
             self.port_used.time_usage[self.vehicle.className] += abs(self.end_time - self.start_time)
+
+            blocks_used = np.ceil(self.charge_time / 300)
+
+            test = round(hub.usage_factor[0] / blocks_used, 4)
+
+            if 7 <= current_time.hour < 22:
+                if np.random.choice([True, False], 1, p=[round(hub.usage_factor[0] / blocks_used, 4), round(1 - round(hub.usage_factor[0] / blocks_used, 4), 4)])[0]:
+                    self.status = True
+                else:
+                    self.status = False
+            else:
+                if np.random.choice([True, False], 1, p=[round(hub.usage_factor[1] / blocks_used, 4), round(1 - round(hub.usage_factor[1] / blocks_used, 4), 4)])[0]:
+                    self.status = True
+                else:
+                    self.status = False
+
             # Disable port
             self.port_used.status = False
 
@@ -433,44 +451,25 @@ class Hub:
         valid_sessions = []
         power_list = []
         previous_date = False
+
         for date in date_range:
             self.check_port_status(date)  # Refreshes Hub ports
-            if (7 <= date.hour < 22) and date.minute % 30 == 0:
-                for port in self.hub_ports:
-                    if np.random.choice([True, False], 1, p=[self.usage_factor[0], 1 - self.usage_factor[0]])[0]:
-                        sub_session = Session(self, date)
-                        if sub_session.status:
-                            if sub_session.vehicle.className == 'Class 7-8':
-                                sessioncount = (1/7) * (1/4)
-                            else:
-                                sessioncount = (0.5)* (1/4)
-                            df_temp = pd.DataFrame(
-                                data={
-                                    'Index': [date],
-                                    'Vehicle': [sub_session.vehicle.className],
-                                    'Sessions': [sessioncount],
-                                    'Consumption': [sub_session.consumption]
-                                }
-                            )
-                            data_df = pd.concat([data_df, df_temp], ignore_index=True)
-            elif (date.hour < 7 or date.hour >= 22) and date.minute % 30 == 0:
-                for port in self.hub_ports:
-                    if np.random.choice([True, False], 1, p=[self.usage_factor[1], 1 - self.usage_factor[1]])[0]:
-                        sub_session = Session(self, date)
-                        if sub_session.status:
-                            if sub_session.vehicle.className == 'Class 7-8':
-                                sessioncount = (1/7) * (1/4)
-                            else:
-                                sessioncount = 0.5 * (1/4)
-                            df_temp = pd.DataFrame(
-                                data={
-                                    'Index': [date],
-                                    'Vehicle': [sub_session.vehicle.className],
-                                    'Sessions': [sessioncount],
-                                    'Consumption': [sub_session.consumption]
-                                }
-                            )
-                            data_df = pd.concat([data_df, df_temp], ignore_index=True)
+            if date.minute % 30 == 0:
+                sub_session = Session(self, date)
+                if sub_session.status:
+                    if sub_session.vehicle.className == 'Class 7-8':
+                        sessioncount = (1 / 7) * (1 / 4)
+                    else:
+                        sessioncount = (0.5) * (1 / 4)
+                    df_temp = pd.DataFrame(
+                        data={
+                            'Index': [date],
+                            'Vehicle': [sub_session.vehicle.className],
+                            'Sessions': [sessioncount],
+                            'Consumption': [sub_session.consumption]
+                        }
+                    )
+                    data_df = pd.concat([data_df, df_temp], ignore_index=True)
 
             power_list.append(self.current_power())
             for port in self.hub_ports + self.ports_used:
@@ -494,68 +493,10 @@ class Hub:
         })
         df_power = df_power.set_index('Index').resample('M').max().reset_index()
 
-
-        # with pd.ExcelWriter('output.xlsx') as writer:
-        #     df.to_excel(writer, sheet_name='Graphic Schedule')
-        #     df_temp1.merge(df_temp2, on=["Index", "Vehicle"]).to_excel(writer, sheet_name='Data')
-        #     df_power.to_excel(writer, sheet_name='Power')
-
-        # st.dataframe(df_temp1)
-        # st.dataframe(df_temp2)
-        # st.dataframe(df_power)
-
         return df, df_temp1, df_temp2, df_power
 
-# def test():
-#
-#     Hub_Name = "Urban Multimodal"
-#     Hub_Notional_Loading = [0.7, 0.5]
-#     Hub_Ports = [Port(pq.Quantity(150, 'kW')) for i in range(8)] + [Port(pq.Quantity(300, 'kW')) for i in range(2)]
-#     Hub_Vehicle_Mix = [0.35, 0.5, 0.15]
-#
-#     hub = Hub(Hub_Name, Hub_Notional_Loading, Hub_Ports, Hub_Vehicle_Mix)
-#
-#     return hub.simulate_hub_data('1/30/2022')
-
-
-
-# starttime = timeit.default_timer()
-# print("The start time is :", starttime)
-# data_set = []
-# power_set = []
-# portdata_set = []
-# for runs in range(10):
-#     data, power, portdata = test()
-#     data_set.append(data)
-#     power_set.append(power)
-#     portdata_set.append(portdata)
-#
-# print("The time difference is :", timeit.default_timer() - starttime)
-
-# pd.set_option('display.max_columns', 100)  # or 1000
-# pd.set_option('display.max_rows', 100)  # or 1000
-# pd.set_option('display.max_colwidth', 199)  # or 199
-#
-#
-# with pd.ExcelWriter('output.xlsx') as writer:
-#     (pd.concat(data_set).set_index('Index').groupby('Vehicle')['Sessions'].describe()).T.to_excel(writer, sheet_name='Sessions')
-#     (pd.concat(data_set).set_index('Index').groupby('Vehicle')['Consumption'].describe()).T.to_excel(writer, sheet_name='Consumption')
-#     (pd.concat(power_set).set_index('Index').describe()).T.to_excel(writer, sheet_name='Power')
-#     pd.concat(portdata_set).groupby(['Port Type']).describe().T.to_excel(writer, sheet_name='Port Usage')
-
-# Hub_Name = "Rural"
-# Hub_Notional_Loading = [0.6,0.1]
-# Hub_Ports = [Port(pq.Quantity(150, 'kW')) for i in range(2)]
-# Hub_Vehicle_Mix = [0.4, 0.5, 0.1]
-# hub = Hub(Hub_Name, Hub_Notional_Loading, Hub_Ports, Hub_Vehicle_Mix)
-#
-#
-# idk = hub.graphic_sim('1/30/2022')
-# print(idk)
-
-
 Hub_Name = "Rural"
-Hub_Notional_Loading = [0.6, 0.1]
+Hub_Notional_Loading = [1, 1]
 Hub_Ports = [Port(pq.Quantity(150, 'kW')) for i in range(2)]
 Hub_Vehicle_Mix = [0.4, 0.5, 0.1]
 
@@ -563,8 +504,6 @@ hub = Hub(Hub_Name, Hub_Notional_Loading, Hub_Ports, Hub_Vehicle_Mix)
 
 df, df1, df2, df3 = hub.graphic_sim('1/30/2022')
 
-#df_styled = df.style.applymap(lambda x: "background-color: red" if x is False else "background-color: white")
-#df_styled.to_excel('output.xlsx')
 
 df.drop(range(0,264), inplace=True)
 df.drop(df.columns[2], axis=1, inplace=True)
@@ -606,16 +545,17 @@ loadingpercent_722 = []
 
 for df in df_during227:
     try:
-        true_count, false_count = df_during227[0].value_counts().tolist()
+        true_count, false_count = df.value_counts().tolist()
     except:
-        print(df_during227[0].value_counts())
+        print(df.value_counts())
+
     loadingpercent_227.append(false_count/ (true_count + false_count))
 
 for df in df_during722:
     try:
-        true_count, false_count = df_during722[0].value_counts().tolist()
+        true_count, false_count = df.value_counts().tolist()
     except:
-        print(df_during722[0].value_counts())
+        print(df.value_counts())
     loadingpercent_722.append(false_count/ (true_count + false_count))
 
 print('g')
