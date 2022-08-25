@@ -14,7 +14,7 @@ OPERATION_HOURS = pq.Quantity(24, 'hour')
 NOTIONAL_HOURS = pq.Quantity([15, 9], 'hour')
 
 #TODO: Check units C:\Users\Miles\AppData\Local\Programs\Python\Python39\Lib\site-packages\quantities\units
-#This might vary per device that is running the code actually
+#This might vary per device that is running the code actuall
 
 class Session:
     def __init__(self, hub, current_time):
