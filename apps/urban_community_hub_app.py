@@ -2,15 +2,25 @@ import streamlit as st
 from streamlit_echarts import st_echarts
 import quantities as pq
 import numpy as np
+import altair as alt
 from Hub import Hub
 from Port import Port
-from VehicleClass import VehicleClass
-import copy
+
+from st_aggrid import AgGrid
+
+from VehicleClass import car
 
 #Vehicles
 Class_A = VehicleClass(0, pq.Quantity(3.181, 'miles / kW') , pq.Quantity(15638, 'miles / year'), "Class 1-2")
 Class_B = VehicleClass(1, pq.Quantity(1.245, 'miles / kW') , pq.Quantity(16200, 'miles / year'), 'Class 3-6')
 Class_C = VehicleClass(2, pq.Quantity(0.41, 'miles / kW') , pq.Quantity(48750, 'miles / year'), 'Class 7-8')
+
+
+Hub_Name = "Urban Multimodal"
+Hub_Notional_Loading = [0.7,0.5]
+Hub_Ports = np.array([Port(pq.Quantity(150, 'kW'),8), Port(pq.Quantity(300, 'kW'),2)])
+Hub_Vehicle_Mix = [0.35, 0.5 , 0.15]
+
 
 Hub_Name = "Urban Community"
 Hub_Notional_Loading = [0.7,0.5]
@@ -114,11 +124,11 @@ def app():
         unsafe_allow_html=True,
     )
     maincol1expander.markdown("<p style='text-align: left; color: black; text-indent: 15%;'>Hub Type:       {}</p>".format(Hub_Urban_Community.Hub_Type), unsafe_allow_html=True)
-    maincol1expander.markdown("<p style='text-align: left; color: black; text-indent: 15%;'>Total Ports:        {}</p>".format(Hub_Urban_Community.Total_Ports()), unsafe_allow_html=True)
+    maincol1expander.markdown("<p style='text-align: left; color: black; text-indent: 15%;'>Total Ports:        {}</p>".format(Hub_Urban_Community.total_ports()), unsafe_allow_html=True)
     maincol1expander.markdown("<p style='text-align: left; color: black; text-underline-offset: 20%; text-indent: 15%;'><u>Types of Ports</u></p>", unsafe_allow_html=True)
-    for i in range(len(Hub_Urban_Community.ESVE_Ports)):
+    for i in range(len(Hub_Urban_Community.esve_ports)):
         maincol1expander.markdown(
-            "<p style='text-align: left; color: black; text-underline-offset: 20%; text-indent: 20%;'>• {}</p>".format(Hub_Urban_Community.ESVE_Ports[i].datatext()),
+            "<p style='text-align: left; color: black; text-underline-offset: 20%; text-indent: 20%;'>• {}</p>".format(Hub_Urban_Community.esve_ports[i].datatext()),
             unsafe_allow_html=True)
 
 

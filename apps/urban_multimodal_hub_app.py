@@ -114,11 +114,11 @@ def app():
         unsafe_allow_html=True,
     )
     maincol1expander.markdown("<p style='text-align: left; color: black; text-indent: 15%;'>Hub Type:       {}</p>".format(Hub_Urban_Multimodal.Hub_Type), unsafe_allow_html=True)
-    maincol1expander.markdown("<p style='text-align: left; color: black; text-indent: 15%;'>Total Ports:        {}</p>".format(Hub_Urban_Multimodal.Total_Ports()), unsafe_allow_html=True)
+    maincol1expander.markdown("<p style='text-align: left; color: black; text-indent: 15%;'>Total Ports:        {}</p>".format(Hub_Urban_Multimodal.total_ports()), unsafe_allow_html=True)
     maincol1expander.markdown("<p style='text-align: left; color: black; text-underline-offset: 20%; text-indent: 15%;'><u>Types of Ports</u></p>", unsafe_allow_html=True)
-    for i in range(len(Hub_Urban_Multimodal.ESVE_Ports)):
+    for i in range(len(Hub_Urban_Multimodal.esve_ports)):
         maincol1expander.markdown(
-            "<p style='text-align: left; color: black; text-underline-offset: 20%; text-indent: 20%;'>• {}</p>".format(Hub_Urban_Multimodal.ESVE_Ports[i].datatext()),
+            "<p style='text-align: left; color: black; text-underline-offset: 20%; text-indent: 20%;'>• {}</p>".format(Hub_Urban_Multimodal.esve_ports[i].datatext()),
             unsafe_allow_html=True)
 
 
