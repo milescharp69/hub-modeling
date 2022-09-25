@@ -2,10 +2,13 @@ import streamlit as st
 from streamlit_echarts import st_echarts
 import quantities as pq
 import numpy as np
+import altair as alt
 from Hub import Hub
 from Port import Port
-from VehicleClass import VehicleClass
-import copy
+
+from st_aggrid import AgGrid
+
+from VehicleClass import car
 
 #Vehicles
 Class_A = VehicleClass(0, pq.Quantity(3.181, 'miles / kW') , pq.Quantity(15638, 'miles / year'), "Class 1-2")

@@ -1,13 +1,9 @@
-import timeit
-
 import numpy as np
 import pandas as pd
 import quantities as pq
-
 from Port import Port
 from VehicleClass import car
 
-import streamlit as st
 
 # Global Variables
 OPERATION_HOURS = pq.Quantity(24, 'hour')
@@ -21,8 +17,6 @@ class Session:
         self.start_time = current_time
 
         self.vehicle = np.random.choice(hub.vehicle_types, 1, p=hub.vehicle_mix)[0]
-
-
 
         port_weight = hub.port_weights(self.vehicle)
         self.port_weight = port_weight
@@ -44,10 +38,12 @@ class Session:
             self.power = self.port_used.Port_kW.magnitude
 
             #Charge time is in seconds
-            self.charge_time = float(pq.Quantity(self.consumption / self.power, 'hour').rescale('second').magnitude) + 360
+            self.charge_time = float(pq.Quantity(self.consumption / self.power, 'hour').rescale('second').magnitude)
+            #Removed the addition of 6 minutes?
 
             # Rounded time
             #TODO: Future improvement- Make sure there is a reasonable amount of time between the sessions
+
             self.port_used.open_date = pd.Timestamp(current_time.timestamp() + self.charge_time, unit='s').ceil(
                 freq='5T')
             self.end_time = self.port_used.open_date
@@ -56,21 +52,33 @@ class Session:
 
             blocks_used = np.ceil(self.charge_time / 300)
 
-            test = round(hub.usage_factor[0] / blocks_used, 4)
 
+            #Usage factor will set a limit on the number of 5 charging blocks in a given day
+
+
+            #hub.usage_factor[0]  180 slots
+            #hub.usage_factor[1] 108 slots
+            #round(hub.usage_factor[0] / blocks_used, 4)
             if 7 <= current_time.hour < 22:
-                if np.random.choice([True, False], 1, p=[round(hub.usage_factor[0] / blocks_used, 4), round(1 - round(hub.usage_factor[0] / blocks_used, 4), 4)])[0]:
-                    self.status = True
-                else:
+                if hub.slots - blocks_used < 0:
                     self.status = False
+                else:
+                    if np.random.choice([True, False], 1, p=[hub.usage_factor[0], round(1 - hub.usage_factor[0], 4)])[0]:
+                        self.status = True
+                    else:
+                        self.status = False
             else:
-                if np.random.choice([True, False], 1, p=[round(hub.usage_factor[1] / blocks_used, 4), round(1 - round(hub.usage_factor[1] / blocks_used, 4), 4)])[0]:
-                    self.status = True
-                else:
+                if hub.slots - blocks_used < 0:
                     self.status = False
+                else:
+                    if np.random.choice([True, False], 1, p=[hub.usage_factor[1], round(1 - hub.usage_factor[1], 4)])[0]:
+                        self.status = True
+                    else:
+                        self.status = False
 
             # Disable port
             self.port_used.status = False
+
 
 class Hub:
 
@@ -94,6 +102,8 @@ class Hub:
             port.id = str(int(port.Port_kW.magnitude)) + 'kWxx00' + str(self.port_types[float(port.Port_kW.magnitude)])
         self.ports_used = []
 
+
+        self.slots = 0
         #TODO:Rewrite the peak load
 
         # peak = 0
@@ -349,89 +359,89 @@ class Hub:
     def current_power(self):
         return np.sum([float(port.Port_kW.magnitude) for port in self.ports_used])
 
-    def simulate_hub_data(self, end_date):
-        """
-
-        :param end_date:
-        :return: Pandas DataFrame containing a list of vehicles using the hub at a given time
-        """
-
-        date_range = pd.date_range(start='1/1/2022', end=end_date, freq='5T')
-        df = pd.DataFrame()
-        df['Index'] = []
-        df['Vehicle'] = []
-        df['Sessions'] = []
-        df['Consumption'] = []
-        power_list = []
-        previous_date = False
-
-        #TODO: Perhaps instead of making a temp dataframe everytime just append the data to list and then make a data frame at the end
-
-        for date in date_range:
-            self.check_port_status(date)  # Refreshes Hub ports
-            if (7 <= date.hour < 22) and date.minute % 15 == 0:
-                for port in self.hub_ports:
-                    if np.random.choice([True, False], 1, p=[self.usage_factor[0], 1 - self.usage_factor[0]])[0]:
-                        sub_session = Session(self, date)
-                        if sub_session.status:
-                            if sub_session.vehicle.className == 'Class 7-8':
-                                sessioncount = 1/7
-                            else:
-                                sessioncount = 0.5
-                            df_temp = pd.DataFrame(
-                                data={
-                                    'Index': [date],
-                                    'Vehicle': [sub_session.vehicle.className],
-                                    'Sessions': [sessioncount],
-                                    'Consumption': [sub_session.consumption]
-                                }
-                            )
-                            df = pd.concat([df, df_temp], ignore_index=True)
-            elif (date.hour < 7 or date.hour >= 22) and date.minute % 15 == 0:
-                for port in self.hub_ports:
-                    if np.random.choice([True, False], 1, p=[self.usage_factor[1], 1 - self.usage_factor[1]])[0]:
-                        sub_session = Session(self, date)
-                        if sub_session.status:
-                            if sub_session.vehicle.className == 'Class 7-8':
-                                sessioncount = 1/7
-                            else:
-                                sessioncount = 0.5
-                            df_temp = pd.DataFrame(
-                                data={
-                                    'Index': [date],
-                                    'Vehicle': [sub_session.vehicle.className],
-                                    'Sessions': [sessioncount],
-                                    'Consumption': [sub_session.consumption]
-                                }
-                            )
-                            df = pd.concat([df, df_temp], ignore_index=True)
-            power_list.append(self.current_power())
-
-            if previous_date is not False:
-                for port in self.hub_ports:
-                    port.time_free += abs(date - previous_date)
-            previous_date = date
-
-        df_temp1 = df.set_index('Index').groupby('Vehicle')['Sessions'].resample('M').sum().reset_index()
-
-        df_temp2 = (df.set_index('Index').groupby('Vehicle')['Consumption'].resample('M').sum() * 0.001).reset_index()
-        df_power = pd.DataFrame({
-            'Index': date_range,
-            'Power': power_list
-        })
-        df_power = df_power.set_index('Index').resample('M').max().reset_index()
-
-        #Port Usage %
-        temp_ports = [Port(pq.Quantity(port_type, 'kW')) for port_type in self.port_types.keys()]
-        for port_type in temp_ports:
-            for port in self.hub_ports + self.ports_used:
-                if port.Port_kW == port_type.Port_kW:
-                    port_type + port
-        port_data_df = pd.concat([port.usage_percent() for port in temp_ports],
-                                 keys=[str(port_type) for port_type in self.port_types.keys()],
-                                 names= ['Port Type'])
-        port_data_df = port_data_df.reset_index().drop('level_1', axis=1).set_index('Port Type')
-        return df_temp1.merge(df_temp2, on=["Index", "Vehicle"]), df_power, port_data_df
+    # def simulate_hub_data(self, end_date):
+    #     """
+    #
+    #     :param end_date:
+    #     :return: Pandas DataFrame containing a list of vehicles using the hub at a given time
+    #     """
+    #
+    #     date_range = pd.date_range(start='1/1/2022', end=end_date, freq='5T')
+    #     df = pd.DataFrame()
+    #     df['Index'] = []
+    #     df['Vehicle'] = []
+    #     df['Sessions'] = []
+    #     df['Consumption'] = []
+    #     power_list = []
+    #     previous_date = False
+    #
+    #     #TODO: Perhaps instead of making a temp dataframe everytime just append the data to list and then make a data frame at the end
+    #
+    #     for date in date_range:
+    #         self.check_port_status(date)  # Refreshes Hub ports
+    #         if (7 <= date.hour < 22) and date.minute % 15 == 0:
+    #             for port in self.hub_ports:
+    #                 if np.random.choice([True, False], 1, p=[self.usage_factor[0], 1 - self.usage_factor[0]])[0]:
+    #                     sub_session = Session(self, date)
+    #                     if sub_session.status:
+    #                         if sub_session.vehicle.className == 'Class 7-8':
+    #                             sessioncount = 1/7
+    #                         else:
+    #                             sessioncount = 0.5
+    #                         df_temp = pd.DataFrame(
+    #                             data={
+    #                                 'Index': [date],
+    #                                 'Vehicle': [sub_session.vehicle.className],
+    #                                 'Sessions': [sessioncount],
+    #                                 'Consumption': [sub_session.consumption]
+    #                             }
+    #                         )
+    #                         df = pd.concat([df, df_temp], ignore_index=True)
+    #         elif (date.hour < 7 or date.hour >= 22) and date.minute % 15 == 0:
+    #             for port in self.hub_ports:
+    #                 if np.random.choice([True, False], 1, p=[self.usage_factor[1], 1 - self.usage_factor[1]])[0]:
+    #                     sub_session = Session(self, date)
+    #                     if sub_session.status:
+    #                         if sub_session.vehicle.className == 'Class 7-8':
+    #                             sessioncount = 1/7
+    #                         else:
+    #                             sessioncount = 0.5
+    #                         df_temp = pd.DataFrame(
+    #                             data={
+    #                                 'Index': [date],
+    #                                 'Vehicle': [sub_session.vehicle.className],
+    #                                 'Sessions': [sessioncount],
+    #                                 'Consumption': [sub_session.consumption]
+    #                             }
+    #                         )
+    #                         df = pd.concat([df, df_temp], ignore_index=True)
+    #         power_list.append(self.current_power())
+    #
+    #         if previous_date is not False:
+    #             for port in self.hub_ports:
+    #                 port.time_free += abs(date - previous_date)
+    #         previous_date = date
+    #
+    #     df_temp1 = df.set_index('Index').groupby('Vehicle')['Sessions'].resample('M').sum().reset_index()
+    #
+    #     df_temp2 = (df.set_index('Index').groupby('Vehicle')['Consumption'].resample('M').sum() * 0.001).reset_index()
+    #     df_power = pd.DataFrame({
+    #         'Index': date_range,
+    #         'Power': power_list
+    #     })
+    #     df_power = df_power.set_index('Index').resample('M').max().reset_index()
+    #
+    #     #Port Usage %
+    #     temp_ports = [Port(pq.Quantity(port_type, 'kW')) for port_type in self.port_types.keys()]
+    #     for port_type in temp_ports:
+    #         for port in self.hub_ports + self.ports_used:
+    #             if port.Port_kW == port_type.Port_kW:
+    #                 port_type + port
+    #     port_data_df = pd.concat([port.usage_percent() for port in temp_ports],
+    #                              keys=[str(port_type) for port_type in self.port_types.keys()],
+    #                              names= ['Port Type'])
+    #     port_data_df = port_data_df.reset_index().drop('level_1', axis=1).set_index('Port Type')
+    #     return df_temp1.merge(df_temp2, on=["Index", "Vehicle"]), df_power, port_data_df
 
     def graphic_sim(self, end_date):
         date_range = pd.date_range(start='1/1/2022', end=end_date, freq='5T')
@@ -451,9 +461,28 @@ class Hub:
         valid_sessions = []
         power_list = []
         previous_date = False
+        slot_switch = [1,1] #did it switch periods 1
 
         for date in date_range:
             self.check_port_status(date)  # Refreshes Hub ports
+            #Check/reset the number of slots possible
+            #self.slots = [180, 108]
+
+            #TODO: Figure out a better way to do this
+            if 7 <= date.hour < 22:
+                slot_switch[1] = 0
+            else:
+                slot_switch[1] = 1
+
+            if slot_switch[0] != slot_switch[1]:
+                #reset the number of possible slots
+                if slot_switch[0] == 1:
+                    self.slots = 108
+                else:
+                    self.slots = 180
+                slot_switch[0] = slot_switch[1]
+
+
             if date.minute % 30 == 0:
                 sub_session = Session(self, date)
                 if sub_session.status:
@@ -487,6 +516,9 @@ class Hub:
         df_temp1 = data_df.set_index('Index').groupby('Vehicle')['Sessions'].resample('M').sum().reset_index()
         df_temp2 = (data_df.set_index('Index').groupby('Vehicle')['Consumption'].resample('M').sum() * 0.001).reset_index()
 
+        #Round up the number of sessions to the nearest whole number
+        df_temp1["Sessions"] = df_temp1["Sessions"] .apply(np.ceil)
+
         df_power = pd.DataFrame({
             'Index' : date_range,
             'Power' : power_list
@@ -495,67 +527,13 @@ class Hub:
 
         return df, df_temp1, df_temp2, df_power
 
-Hub_Name = "Rural"
-Hub_Notional_Loading = [1, 1]
-Hub_Ports = [Port(pq.Quantity(150, 'kW')) for i in range(2)]
-Hub_Vehicle_Mix = [0.4, 0.5, 0.1]
 
-hub = Hub(Hub_Name, Hub_Notional_Loading, Hub_Ports, Hub_Vehicle_Mix)
-
-df, df1, df2, df3 = hub.graphic_sim('1/30/2022')
-
-
-df.drop(range(0,264), inplace=True)
-df.drop(df.columns[2], axis=1, inplace=True)
-df = df.set_index(pd.DatetimeIndex(df['Date']))
-df.drop(df.columns[0], axis=1, inplace=True)
-
-
-df_during227 = [] #108
-
-df_during722 = [] #180
-
-count = 0
-
-start_val = 0
-end_val = 108
-adder = 180
-
-while count < 20:
-    if adder == 180:
-        tempdf = df.iloc[start_val:end_val]
-        df_during227.append(tempdf)
-        start_val = end_val
-        end_val += adder
-        adder = 108
-        count += 1
-        continue
-
-    if adder == 108:
-        tempdf = df.iloc[start_val:end_val]
-        df_during722.append(tempdf)
-        start_val = end_val
-        end_val += adder
-        adder = 180
-    count += 1
-
-
-loadingpercent_227 = []
-loadingpercent_722 = []
-
-for df in df_during227:
-    try:
-        true_count, false_count = df.value_counts().tolist()
-    except:
-        print(df.value_counts())
-
-    loadingpercent_227.append(false_count/ (true_count + false_count))
-
-for df in df_during722:
-    try:
-        true_count, false_count = df.value_counts().tolist()
-    except:
-        print(df.value_counts())
-    loadingpercent_722.append(false_count/ (true_count + false_count))
-
-print('g')
+# Hub_Name = "Rural"
+# Hub_Notional_Loading = [0.6, 0.1]
+# Hub_Ports = [Port(pq.Quantity(150, 'kW')) for i in range(2)]
+# Hub_Vehicle_Mix = [0.4, 0.5, 0.1]
+#
+# hub = Hub(Hub_Name, Hub_Notional_Loading, Hub_Ports, Hub_Vehicle_Mix)
+#
+# df1, df2, df3, df4 = hub.graphic_sim("1/31/2022")
+# print("g")

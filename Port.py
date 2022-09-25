@@ -50,15 +50,5 @@ class Port:
         return self.Port_kW
 
 
-# test1 = Port(pq.Quantity(150, 'kW'))
-# print(test1.Port_kW)
-# test2 = Port(pq.Quantity(150, 'kW'))
-# test2.time_usage["Class 1-2"] += pd.Timedelta(days=1)
-#
-# test1 + test2
-# print(test1.time_usage)
-
-#Should I find the time_usage for a port ca
-
 
 

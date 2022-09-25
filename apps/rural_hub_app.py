@@ -226,27 +226,86 @@ def app():
 
         st_echarts(options=option)
 
-    #Cache this somehow
-    #Throw in the rest of the data
-    hub_ori = Hub(Hub_Name, Hub_Notional_Loading, Hub_Ports, Hub_Vehicle_Mix)
-    df, df1, df2, df3 = hub_copy.graphic_sim('1/30/2022')
-    df_styled = df.style.applymap(lambda x: "background-color: red" if x is False else "background-color: white")
-    schedule_expander = st.expander("Hub Schedule")
-    schedule_expander.dataframe(df_styled)
-    AgGrid(df)
+    #PV /SeSS expander
+    # maincol2expander = hubinfocontainercol2.expander("Peak Load", expanded=True)
+    # maincol2expander.markdown("<p style='text-align: center; color: black; font-size: 25px;'>{}</p>".format(
+    #     Hub_Rural.peak_load), unsafe_allow_html=True)
+    # maincol2expander.text("Work In Progress")
 
 
+    """
+    First pass 
+    assume for the value of energy produced use 10 cents
+    6 cents if you are selling it back t o your rep 
+    assume that any given counted vehicle's session is going to take place in 60/150ths of an hour at a given port      What does he mean by this though 
+    
+    """
 
-    # df1, df2, df3 = hub.simulate_hub_data('1/30/2022')
-    st.dataframe(df1)
-    st.dataframe(df2)
-    st.dataframe(df3)
+    st.title("Simulated Vehicle Throughput")
+    #Talk about the assumptions here maybe
+
+    df1, df2, df3, df4 = hub.graphic_sim("1/31/2022")
+
+    simulated_data_graphs = st.expander("Simulated Data Graphs")
+    simulated_data_graphs.dataframe(df1)
+    simulated_data_graphs.dataframe(df2)
+    simulated_data_graphs.dataframe(df3)
+    simulated_data_graphs.dataframe(df4)
+
+    power = int(df4["Power"])
+    energy_consumption = df3.set_index("Vehicle")["Consumption"]["Class 1-2"] + df3.set_index("Vehicle")["Consumption"]["Class 3-6"] + df3.set_index("Vehicle")["Consumption"]["Class 7-8"]
+
+    st.metric("Power", power)
+
+    sessioncol_ignore1, sessions_graph_col, sessions_chart, sessioncol_ignore2 = st.columns([1, 2, 1, 1])
+
+    with sessions_graph_col:
+        options = {
+            "xAxis": {
+                "type": "category",
+                "data": ["Class A", "Class B", "Class C"],
+            },
+            "yAxis": {"type": "value"},
+            "series": [{"data": [df2.set_index("Vehicle")["Sessions"]["Class 1-2"],
+                                 df2.set_index("Vehicle")["Sessions"]["Class 3-6"],
+                                 df2.set_index("Vehicle")["Sessions"]["Class 7-8"]], "type": "bar"}],
+        }
+        st_echarts(options=options)
+    sessions_chart.metric("Class A",df2.set_index("Vehicle")["Sessions"]["Class 1-2"])
+    sessions_chart.metric("Class B", df2.set_index("Vehicle")["Sessions"]["Class 3-6"])
+    sessions_chart.metric("Class C", df2.set_index("Vehicle")["Sessions"]["Class 7-8"])
 
 
+    pv_expander  = st.expander("PV")
+    pv_choice = pv_expander.radio("PV Calculation Option", ["Manual", "By offset %"])
+    pvform = pv_expander.form("my_form")
+    if pv_choice == "Manual":
 
-    st.download_button(
-        label="Download schedule",
-        data= df_styled.to_excel("output.xlsx"),
-        file_name='output.xlsx"',
-        mime = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-    )
+        pv_infocol1, pv_infocol2 = pvform.columns([1, 1])
+
+        invert_percent = pv_infocol1.number_input("Inverter Loss", 1.10)
+        degrad_percent = pv_infocol1.number_input("Degradation Loss", 1.01)
+        additional_percent = pv_infocol1.number_input("Additional Losses", 1.00)
+        avg_peak_sun_hours = pv_infocol1.number_input("Average Peak Sun Hours", 4.95)
+
+        pv_infocol2.text("Solar Panel Info")
+        submit_pv_form = pvform.form_submit_button("Submit")
+        panel_wattage = pv_infocol2.number_input("Enter panel wattage (W)", 400)
+        panel_length = pv_infocol2.number_input("Enter panel length (m)", 0.9906)
+        panel_width = pv_infocol2.number_input("Enter panel width (m)", 1.96)
+
+        panel_area = panel_length * panel_width  # in m^2
+
+        solar_array_output = (energy_consumption * invert_percent * degrad_percent * additional_percent) / (avg_peak_sun_hours)
+
+        panels_needed = (solar_array_output * 1000) / panel_wattage
+
+        required_area = panels_needed * panel_area
+
+
+    if submit_pv_form:
+        pv_col1, pv_col2, pv_col3 = pv_expander.columns([1, 1, 1])
+
+        pv_metric1 = pv_col1.metric("Solar Array Output kW", round(solar_array_output, 3))
+        pv_metric2 = pv_col2.metric("Panels Needed", round(panels_needed,3))
+        pv_metric3 = pv_col3.metric("Required Area sq m", round(required_area,3))
