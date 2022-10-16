@@ -403,4 +403,4 @@ def app():
 
             # TODO:Add in Solar production calculations
 
-            #6:37
+            #johnny is gay
