@@ -402,3 +402,5 @@ def app():
             pv_metric3 = pv_col3.metric("Required Area sq m", round(required_area, 3))
 
             # TODO:Add in Solar production calculations
+
+            #6:37
