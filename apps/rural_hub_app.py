@@ -3,8 +3,13 @@ from streamlit_echarts import st_echarts
 import quantities as pq
 from Hub import Hub
 from Port import Port
+import pvlib
+import pandas as pd
+import matplotlib.pyplot as plt
+from matplotlib.dates import DateFormatter
+import numpy as np
 
-#2
+
 def app():
     Hub_Name = "Rural"
     Hub_Notional_Loading = [0.6, 0.1]
@@ -217,13 +222,6 @@ def app():
 
         st_echarts(options=option)
 
-    #PV /SeSS expander
-    # maincol2expander = hubinfocontainercol2.expander("Peak Load", expanded=True)
-    # maincol2expander.markdown("<p style='text-align: center; color: black; font-size: 25px;'>{}</p>".format(
-    #     Hub_Rural.peak_load), unsafe_allow_html=True)
-    # maincol2expander.text("Work In Progress")
-
-
     """
     First pass 
     assume for the value of energy produced use 10 cents
@@ -235,7 +233,11 @@ def app():
     st.title("Simulated Vehicle Throughput")
     #Talk about the assumptions here maybe
 
-    df1, df2, df3, df4 = hub.graphic_sim("1/31/2022")
+    @st.cache
+    def hub_sim(model, date):
+        return model.graphic_sim(date)
+
+    df1, df2, df3, df4 = hub_sim(hub, "1/31/2022")
 
     simulated_data_graphs = st.expander("Simulated Data Graphs")
     simulated_data_graphs.dataframe(df1)
@@ -268,10 +270,109 @@ def app():
 
 
     pv_expander  = st.expander("PV")
-    pv_choice = pv_expander.radio("PV Calculation Option", ["Manual", "By offset %"])
-    pvform = pv_expander.form("my_form")
-    if pv_choice == "Manual":
+    pv_choice = pv_expander.radio("PV Calculation Option", ["Simple Manual", "Advanced Input Parameters"])
+    if pv_choice == "Advanced Input Parameters":
+        pv_advanced_form = pv_expander.form("pv_ad_form")
+        # Coordinates of the weather station at University of Oregon (SRML)
+        latitude = pv_advanced_form.number_input("Latitude", 44.0467)
+        longitude = pv_advanced_form.number_input("Longitude", -123.0743)
+        altitude = pv_advanced_form.number_input("Altitude", 133.8)
 
+        surface_tilt = pv_advanced_form.number_input("Surface_Tilt", 30)
+        surface_azimuth = pv_advanced_form.number_input("Surface_Azimuth", 180)
+
+
+        submit_pv_form = pv_advanced_form.form_submit_button("Submit")
+
+        if submit_pv_form:
+            # Solar panel database
+            cec_mod_db = pvlib.pvsystem.retrieve_sam('CECmod')
+
+            # PV module data from a typical datasheet (e.g. Kyocera Solar KD225GX LPB)
+            # module_data = {'celltype': 'multiSi',  # technology
+            #                'STC': 224.99,  # STC power
+            #                'PTC': 203.3,  # PTC power
+            #                'v_mp': 29.8,  # Maximum power voltage
+            #                'i_mp': 7.55,  # Maximum power current
+            #                'v_oc': 36.9,  # Open-circuit voltage
+            #                'i_sc': 8.18,  # Short-circuit current
+            #                'alpha_sc': 0.001636,  # Temperature Coeff. Short Circuit Current [A/C]
+            #                'beta_voc': -0.12177,  # Temperature Coeff. Open Circuit Voltage [V/C]
+            #                'gamma_pmp': -0.43,  # Temperature coefficient of power at maximum point [%/C]
+            #                'cells_in_series': 60,  # Number of cells in series
+            #                'temp_ref': 25}  # Reference temperature conditions
+
+            # Inverter Database
+            invert_df = pvlib.pvsystem.retrieve_sam('CECInverter')
+
+            inverter_data = invert_df["ABB__PVI_3_0_OUTD_S_US__208V_"]
+
+            # Weather df
+            df_weather = pvlib.iotools.read_midc_raw_data_from_nrel('UOSMRL',  # Station id
+                                                                    pd.Timestamp('20210601'),  # Start date YYYYMMDD
+                                                                    pd.Timestamp('20210601'))  # End date  YYYYMMDD
+            df_weather = df_weather[['Global CMP22 [W/m^2]', 'Diffuse Schenk [W/m^2]',
+                                     'Direct CHP1 [W/m^2]', 'Air Temperature [deg C]', 'Avg Wind Speed @ 10m [m/s]']]
+
+            df_weather.columns = ['ghi', 'dhi', 'dni', 'temp_air', 'wind_speed']
+
+            # Define the location object
+            location = pvlib.location.Location(latitude, longitude, altitude=altitude)
+
+            # Define Temperature Paremeters
+            temperature_model_parameters = pvlib.temperature.TEMPERATURE_MODEL_PARAMETERS['sapm'][
+                'open_rack_glass_glass']
+
+            # Define the PV Module and the Inverter from the CEC databases (For example, the first entry of the databases)
+            module_data = cec_mod_db.iloc[:, 0]
+
+            # Define the basics of the class PVSystem
+            system = pvlib.pvsystem.PVSystem(surface_tilt=surface_tilt, surface_azimuth=surface_azimuth,
+                                             module_parameters=module_data,
+                                             inverter_parameters=inverter_data,
+                                             temperature_model_parameters=temperature_model_parameters)
+
+            # Creation of the ModelChain object
+            """ The example does not consider AOI losses nor irradiance spectral losses"""
+            mc = pvlib.modelchain.ModelChain(system, location,
+                                             aoi_model='no_loss',
+                                             spectral_model='no_loss',
+                                             name='AssessingSolar_PV')
+            mc.run_model(df_weather)
+
+            # Plot of Power Output
+            fig, ax = plt.subplots(figsize=(7, 3))
+
+            mc.results.dc['p_mp'].plot(label='DC power')
+            print(mc.results.dc['p_mp'])
+            print(type(mc.results.dc['p_mp']))
+            ax = mc.results.ac.plot(label='AC power')
+
+            ax.xaxis.set_major_formatter(DateFormatter("%H:%M"))
+            ax.set_ylabel('Power [W]')
+            ax.set_xlabel('UTC Time [HH:MM]')
+            ax.set_title('Power Output of PV System')
+            plt.legend()
+            plt.tight_layout()
+            plt.show()
+            st.pyplot(fig)
+
+            # Estimate solar energy available and generated
+            poa_energy = mc.results.total_irrad['poa_global'].sum() * (1 / 60) / 1000  # Daily POA irradiation in kWh
+            dc_energy = mc.results.dc['p_mp'].sum() * (1 / 60) / 1000  # Daily DC energy in kWh
+            ac_energy = mc.results.ac.sum() * (1 / 60) / 1000  # Daily AC energy in kWh
+
+            print('*' * 15, ' Daily Production ', '*' * 15, '\n', '-' * 48)
+            print('\tPOA irradiation: ', "%.2f" % poa_energy, 'kWh')
+            print('\tInstalled PV Capacity: ', "%.2f" % module_data['STC'], 'W')
+            print('\tDC generation:', "%.2f" % dc_energy, 'kWh (', '%.2f' % (dc_energy * 1000 / module_data['STC']),
+                  'kWh/kWp)')
+            print('\tAC generation:', "%.2f" % ac_energy, 'kWh (', '%.2f' % (ac_energy * 1000 / module_data['STC']),
+                  'kWh/kWp)')
+            print('-' * 50)
+
+    if pv_choice == "Manual":
+        pvform = pv_expander.form("my_form")
         pv_infocol1, pv_infocol2 = pvform.columns([1, 1])
 
         invert_percent = pv_infocol1.number_input("Inverter Loss", 1.10)
@@ -293,10 +394,11 @@ def app():
 
         required_area = panels_needed * panel_area
 
+        if submit_pv_form:
+            pv_col1, pv_col2, pv_col3 = pv_expander.columns([1, 1, 1])
 
-    if submit_pv_form:
-        pv_col1, pv_col2, pv_col3 = pv_expander.columns([1, 1, 1])
+            pv_metric1 = pv_col1.metric("Solar Array Output kW", round(solar_array_output, 3))
+            pv_metric2 = pv_col2.metric("Panels Needed", round(panels_needed, 3))
+            pv_metric3 = pv_col3.metric("Required Area sq m", round(required_area, 3))
 
-        pv_metric1 = pv_col1.metric("Solar Array Output kW", round(solar_array_output, 3))
-        pv_metric2 = pv_col2.metric("Panels Needed", round(panels_needed,3))
-        pv_metric3 = pv_col3.metric("Required Area sq m", round(required_area,3))
+            # TODO:Add in Solar production calculations
