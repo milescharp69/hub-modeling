@@ -104,11 +104,9 @@ def app():
                 str(int(i))+"kW x "+str(hub.port_types[i])),
             unsafe_allow_html=True)
 
-    # Peak load expander
-    # maincol2expander = hubinfocontainercol2.expander("Peak Load", expanded=True)
-    # maincol2expander.markdown("<p style='text-align: center; color: black; font-size: 25px;'>{}</p>".format(
-    #     Hub_Rural.peak_load), unsafe_allow_html=True)
-    #maincol2expander.text("Work In Progress")
+
+    maincol2expander = hubinfocontainercol2.expander("Retail and TDU Charges", expanded=True)
+    maincol2expander.text("Work In Progress")
 
 
     # Figures
@@ -269,63 +267,63 @@ def app():
     sessions_chart.metric("Class C", df2.set_index("Vehicle")["Sessions"]["Class 7-8"])
 
 
-    pv_expander  = st.expander("PV")
-    pv_choice = pv_expander.radio("PV Calculation Option", ["Simple Manual", "Advanced Input Parameters"])
-    if pv_choice == "Advanced Input Parameters":
-        pv_advanced_form = pv_expander.form("pv_ad_form")
-        # Coordinates of the weather station at University of Oregon (SRML)
-        latitude = pv_advanced_form.number_input("Latitude", 44.0467)
-        longitude = pv_advanced_form.number_input("Longitude", -123.0743)
-        altitude = pv_advanced_form.number_input("Altitude", 133.8)
+    st.title("PV")
 
-        surface_tilt = pv_advanced_form.number_input("Surface_Tilt", 30)
-        surface_azimuth = pv_advanced_form.number_input("Surface_Azimuth", 180)
+    #Solar panel DataBase
+    cec_mod_db = pvlib.pvsystem.retrieve_sam('CECmod')
 
+    # Inverter Database
+    invert_df = pvlib.pvsystem.retrieve_sam('CECInverter')
+
+    pv_advanced_form = st.form("pv_ad_form")
+
+    # Coordinates of the weather station at University of Oregon (SRML)
+    pv_location_expander = pv_advanced_form.expander("Location")
+
+    #TODO: Input address and then convert to latitude and longitude
+
+    latitude = pv_location_expander.number_input("Latitude", 44.0467)
+    longitude = pv_location_expander.number_input("Longitude", -123.0743)
+    altitude = pv_location_expander.number_input("Altitude", 133.8)
+    surface_tilt = pv_location_expander.number_input("Surface Tilt", 30)
+    surface_azimuth = pv_location_expander.number_input("Surface Azimuth", 180)
+    location = pvlib.location.Location(latitude, longitude, altitude=altitude)  # Define the location object
+
+    #TODO: Get correct station id based on location information
+    with st.spinner('Loading...'):
+        #Weather df
+        df_weather = pvlib.iotools.read_midc_raw_data_from_nrel('UOSMRL',  # Station id
+                                                                pd.Timestamp('20210601'),  # Start date YYYYMMDD
+                                                                pd.Timestamp('20210601'))  # End date  YYYYMMDD
+        df_weather = df_weather[['Global CMP22 [W/m^2]', 'Diffuse Schenk [W/m^2]',
+                                 'Direct CHP1 [W/m^2]', 'Air Temperature [deg C]', 'Avg Wind Speed @ 10m [m/s]']]
+        df_weather_copy = df_weather.copy()
+
+        df_weather.columns = ['ghi', 'dhi', 'dni', 'temp_air', 'wind_speed']
+        weather_data_expander = pv_advanced_form.expander("Weather Data", expanded=False)
+        weather_data_expander.dataframe(df_weather_copy)
+
+
+        #Get Solar panel
+        module_data = cec_mod_db.iloc[:, 0] # Define the PV Module and the Inverter from the CEC databases (For example, the first entry of the databases)
+
+        module_data_expander = pv_advanced_form.expander("Solar Panel Data", expanded=False)
+        module_data_expander.dataframe(module_data)
+
+        #Get Inverter
+        inverter_data = invert_df["ABB__PVI_3_0_OUTD_S_US__208V_"]
+
+        inverter_model_expander = pv_advanced_form.expander("Inverter Data", expanded=False)
+        inverter_model_expander.dataframe(inverter_data)
 
         submit_pv_form = pv_advanced_form.form_submit_button("Submit")
 
-        if submit_pv_form:
-            # Solar panel database
-            cec_mod_db = pvlib.pvsystem.retrieve_sam('CECmod')
-
-            # PV module data from a typical datasheet (e.g. Kyocera Solar KD225GX LPB)
-            # module_data = {'celltype': 'multiSi',  # technology
-            #                'STC': 224.99,  # STC power
-            #                'PTC': 203.3,  # PTC power
-            #                'v_mp': 29.8,  # Maximum power voltage
-            #                'i_mp': 7.55,  # Maximum power current
-            #                'v_oc': 36.9,  # Open-circuit voltage
-            #                'i_sc': 8.18,  # Short-circuit current
-            #                'alpha_sc': 0.001636,  # Temperature Coeff. Short Circuit Current [A/C]
-            #                'beta_voc': -0.12177,  # Temperature Coeff. Open Circuit Voltage [V/C]
-            #                'gamma_pmp': -0.43,  # Temperature coefficient of power at maximum point [%/C]
-            #                'cells_in_series': 60,  # Number of cells in series
-            #                'temp_ref': 25}  # Reference temperature conditions
-
-            # Inverter Database
-            invert_df = pvlib.pvsystem.retrieve_sam('CECInverter')
-
-            inverter_data = invert_df["ABB__PVI_3_0_OUTD_S_US__208V_"]
-
-            # Weather df
-            df_weather = pvlib.iotools.read_midc_raw_data_from_nrel('UOSMRL',  # Station id
-                                                                    pd.Timestamp('20210601'),  # Start date YYYYMMDD
-                                                                    pd.Timestamp('20210601'))  # End date  YYYYMMDD
-            df_weather = df_weather[['Global CMP22 [W/m^2]', 'Diffuse Schenk [W/m^2]',
-                                     'Direct CHP1 [W/m^2]', 'Air Temperature [deg C]', 'Avg Wind Speed @ 10m [m/s]']]
-
-            df_weather.columns = ['ghi', 'dhi', 'dni', 'temp_air', 'wind_speed']
-
-            # Define the location object
-            location = pvlib.location.Location(latitude, longitude, altitude=altitude)
-
+    if submit_pv_form:
+        with st.spinner('Loading...'):
+            #TODO: Double check what this is
             # Define Temperature Paremeters
             temperature_model_parameters = pvlib.temperature.TEMPERATURE_MODEL_PARAMETERS['sapm'][
                 'open_rack_glass_glass']
-
-            # Define the PV Module and the Inverter from the CEC databases (For example, the first entry of the databases)
-            module_data = cec_mod_db.iloc[:, 0]
-
             # Define the basics of the class PVSystem
             system = pvlib.pvsystem.PVSystem(surface_tilt=surface_tilt, surface_azimuth=surface_azimuth,
                                              module_parameters=module_data,
@@ -371,36 +369,4 @@ def app():
                   'kWh/kWp)')
             print('-' * 50)
 
-    if pv_choice == "Manual":
-        pvform = pv_expander.form("my_form")
-        pv_infocol1, pv_infocol2 = pvform.columns([1, 1])
-
-        invert_percent = pv_infocol1.number_input("Inverter Loss", 1.10)
-        degrad_percent = pv_infocol1.number_input("Degradation Loss", 1.01)
-        additional_percent = pv_infocol1.number_input("Additional Losses", 1.00)
-        avg_peak_sun_hours = pv_infocol1.number_input("Average Peak Sun Hours", 4.95)
-
-        pv_infocol2.text("Solar Panel Info")
-        submit_pv_form = pvform.form_submit_button("Submit")
-        panel_wattage = pv_infocol2.number_input("Enter panel wattage (W)", 400)
-        panel_length = pv_infocol2.number_input("Enter panel length (m)", 0.9906)
-        panel_width = pv_infocol2.number_input("Enter panel width (m)", 1.96)
-
-        panel_area = panel_length * panel_width  # in m^2
-
-        solar_array_output = (energy_consumption * invert_percent * degrad_percent * additional_percent) / (avg_peak_sun_hours)
-
-        panels_needed = (solar_array_output * 1000) / panel_wattage
-
-        required_area = panels_needed * panel_area
-
-        if submit_pv_form:
-            pv_col1, pv_col2, pv_col3 = pv_expander.columns([1, 1, 1])
-
-            pv_metric1 = pv_col1.metric("Solar Array Output kW", round(solar_array_output, 3))
-            pv_metric2 = pv_col2.metric("Panels Needed", round(panels_needed, 3))
-            pv_metric3 = pv_col3.metric("Required Area sq m", round(required_area, 3))
-
-            # TODO:Add in Solar production calculations
-
-            #johnny is gay
+    #Offset slider for cost?
