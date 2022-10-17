@@ -329,9 +329,7 @@ def app():
                                              surface_azimuth=surface_azimuth,
                                              module_parameters=module_data,
                                              inverter_parameters=inverter_data,
-                                             temperature_model_parameters=temperature_model_parameters,
-                                             modules_per_string=10,
-                                             strings_per_inverter=10
+                                             temperature_model_parameters=temperature_model_parameters
                                              )
 
             # Creation of the ModelChain object
@@ -362,15 +360,15 @@ def app():
             # Estimate solar energy available and generated
             poa_energy = mc.results.total_irrad['poa_global'].sum() * (1 / 60) / 1000  # Daily POA irradiation in kWh
             dc_energy = mc.results.dc['p_mp'].sum() * (1 / 60) / 1000  # Daily DC energy in kWh
-            ac_energy = mc.results.ac.sum() * (1 / 60) / 1000  # Daily AC energy in kWh
+            # ac_energy = mc.results.ac.sum() * (1 / 60) / 1000  # Daily AC energy in kWh
 
             print('*' * 15, ' Daily Production ', '*' * 15, '\n', '-' * 48)
             print('\tPOA irradiation: ', "%.2f" % poa_energy, 'kWh')
             print('\tInstalled PV Capacity: ', "%.2f" % module_data['STC'], 'W')
             print('\tDC generation:', "%.2f" % dc_energy, 'kWh (', '%.2f' % (dc_energy * 1000 / module_data['STC']),
                   'kWh/kWp)')
-            print('\tAC generation:', "%.2f" % ac_energy, 'kWh (', '%.2f' % (ac_energy * 1000 / module_data['STC']),
-                  'kWh/kWp)')
-            print('-' * 50)
+            # print('\tAC generation:', "%.2f" % ac_energy, 'kWh (', '%.2f' % (ac_energy * 1000 / module_data['STC']),
+            #       'kWh/kWp)')
+            # print('-' * 50)
 
     #Offset slider for cost?
