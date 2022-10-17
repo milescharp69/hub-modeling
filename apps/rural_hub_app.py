@@ -325,10 +325,14 @@ def app():
             temperature_model_parameters = pvlib.temperature.TEMPERATURE_MODEL_PARAMETERS['sapm'][
                 'open_rack_glass_glass']
             # Define the basics of the class PVSystem
-            system = pvlib.pvsystem.PVSystem(surface_tilt=surface_tilt, surface_azimuth=surface_azimuth,
+            system = pvlib.pvsystem.PVSystem(surface_tilt=surface_tilt,
+                                             surface_azimuth=surface_azimuth,
                                              module_parameters=module_data,
                                              inverter_parameters=inverter_data,
-                                             temperature_model_parameters=temperature_model_parameters)
+                                             temperature_model_parameters=temperature_model_parameters,
+                                             modules_per_string=10,
+                                             strings_per_inverter=10
+                                             )
 
             # Creation of the ModelChain object
             """ The example does not consider AOI losses nor irradiance spectral losses"""
