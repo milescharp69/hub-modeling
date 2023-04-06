@@ -10,7 +10,8 @@ from matplotlib.dates import DateFormatter
 from VehicleClass import car
 import datetime
 import geopy
-import timezonefinder, pytz
+from timezonefinder import TimezoneFinder
+import pytz
 
 st.title("Hub Model Explanation")
 
@@ -92,24 +93,15 @@ with vehicle_explanation_twelve_class_chart_empty:
 #     self.mi_year = pq.Quantity(48750, 'miles / year')
 #     self.className = 'Class 7-8'
 
-
-# Battery
-# M
 # TODO: Complete charging section
 vehicle_charging_container = st.container()
 vehicle_charging_container.subheader("Vehicle Charging")
-
-if vehicle_charging_container.button('With battery'):
-    vehicle_charging_container.write('Why hello there')
-else:
-    vehicle_charging_container.write('Goodbye')
-
 # With Battery
 # Without Battery
-
-[car(pq.Quantity(85, 'kW'), 0),
- car(pq.Quantity(225, 'kW'), 1),
- car(pq.Quantity(525, 'kW'), 2)]
+if vehicle_charging_container.button('With battery'):
+    vehicle_charging_container.write('Finish')
+else:
+    vehicle_charging_container.write('Finish')
 
 # Sidebar code
 hub_types = ["Rural", "Commercial Dominant", 'Urban Community', "Urban Multimodal"]
@@ -129,41 +121,19 @@ if selected_hub_type == "Rural":
 elif selected_hub_type == "Commercial Dominant":
     hub = Hub(selected_hub_type,
               [0.6, 0.1],
-              [Port(pq.Quantity(150, 'kW')) for i in range(2)],
+              [[Port(pq.Quantity(150, 'kW')) for i in range(6)], [Port(pq.Quantity(350, 'kW')) for i in range(18)],
+               [Port(pq.Quantity(350, 'kW')) for i in range(16)]],
               [0.4, 0.5, 0.1])
-
-    # Hub_Name = "Rural"
-    # Hub_Notional_Loading = [0.6, 0.1]
-    # # np.array([Port(pq.Quantity(150, 'kW'),6), Port(pq.Quantity(350, 'kW'),18),Port(pq.Quantity(1000, 'kW'),16)])
-    # Hub_Ports = [Port(pq.Quantity(150, 'kW')) for i in range(2)]
-    # Hub_Vehicle_Mix = [0.4, 0.5, 0.1]
-    #
-    # Vehicle_Classes = [Class_A, Class_B, Class_C]
-    # Hub_Commercial_Dominant = Hub(Hub_Name, Hub_Notional_Loading, Hub_Ports, Hub_Vehicle_Mix, Vehicle_Classes)
 elif selected_hub_type == "Urban Community":
     hub = Hub(selected_hub_type,
-              [0.6, 0.1],
+              [0.7, 0.5],
               [Port(pq.Quantity(150, 'kW')) for i in range(2)],
-              [0.4, 0.5, 0.1])
-
-    # Hub_Name = "Urban Community"
-    # Hub_Notional_Loading = [0.7, 0.5]
-    # Hub_Ports = np.array([Port(pq.Quantity(150, 'kW'), 2)])
-    # Hub_Vehicle_Mix = [0.7, 0.3, 0]
-    # Vehicle_Classes = [Class_A, Class_B, Class_C]
-    # Hub_Urban_Community = Hub(Hub_Name, Hub_Notional_Loading, Hub_Ports, Hub_Vehicle_Mix, Vehicle_Classes)
+              [0.7, 0.3, 0])
 elif selected_hub_type == "Urban Multimodal":
     hub = Hub(selected_hub_type,
-              [0.6, 0.1],
-              [Port(pq.Quantity(150, 'kW')) for i in range(2)],
-              [0.4, 0.5, 0.1])
-    # Hub_Name = "Urban Multimodal"
-    # Hub_Notional_Loading = [0.7, 0.5]
-    # Hub_Ports = np.array([Port(pq.Quantity(150, 'kW'), 8), Port(pq.Quantity(300, 'kW'), 2)])
-    # Hub_Vehicle_Mix = [0.35, 0.5, 0.15]
-    # Vehicle_Classes = [Class_A, Class_B, Class_C]
-    # Hub_Urban_Multimodal = Hub(Hub_Name, Hub_Notional_Loading, Hub_Ports, Hub_Vehicle_Mix, Vehicle_Classes)
-
+              [0.7, 0.5],
+              [[Port(pq.Quantity(150, 'kW')) for i in range(8)], [Port(pq.Quantity(300, 'kW')) for i in range(2)] ],
+              [0.35, 0.5, 0.15])
 # Hub Info
 # TODO: Finish this
 
@@ -203,9 +173,7 @@ maincol2expander.text("Work In Progress")
 
 # Class Mixes
 classmix_expander = st.sidebar.expander("Vehicle Class Mix Sliders")
-
 classmix_sliders, classmix_metrics = classmix_expander.columns([1, 1], gap="large")
-
 class_a_mix = classmix_sliders.slider('Vehicle Class A Mix', 0.0, 1.0, hub.vehicle_mix[0], step=0.05,
                                       key="class_a_slider")
 classmix_metrics.metric("Class A Mix", str(hub.vehicle_mix[0]),
@@ -220,8 +188,7 @@ classmix_metrics.metric("Class C Mix", str(hub.vehicle_mix[2]),
                         round(abs(hub.vehicle_mix[2] - st.session_state.class_c_slider), 2))
 
 if class_a_mix + class_b_mix + class_c_mix != 1:
-    # TODO: Find a way to prevent the site for loading anything
-
+    # TODO: Prevent the site for loading anything
     # update Vehicle mix
     classmix_expander.text("Vehicle Mix should add up to 1!")
 
@@ -412,141 +379,131 @@ sessions_chart.metric("Class A", df2.set_index("Vehicle")["Sessions"]["Class 1-2
 sessions_chart.metric("Class B", df2.set_index("Vehicle")["Sessions"]["Class 3-6"])
 sessions_chart.metric("Class C", df2.set_index("Vehicle")["Sessions"]["Class 7-8"])
 
-# Solar Panel
+# # Solar Panel
+# st.title("PV")
+#
+# pv_container = st.container()
+# pv_advanced_form = pv_container.form("pv_ad_form")
+# tab1, tab2, tab3, tab4 = pv_advanced_form.tabs(["Location", "Weather Data", "Solar Panel Data", "Inverter Data"])
+#
+# cec_mod_db = pvlib.pvsystem.retrieve_sam('CECmod')  # Solar panel DataBase
+# invert_df = pvlib.pvsystem.retrieve_sam('CECInverter')  # Inverter Database
+#
+#
+# def get_location_data(address):
+#     if not address:  # Check if the address is empty
+#         return None, None, None, None
+#
+#     locator = geopy.Nominatim(user_agent="myGeocoder", timeout=10)
+#     location = locator.geocode(address)
+#     if location is None:  # Check if the geocoding process returned a valid location object
+#         return None, None, None, None
+#
+#     longitude, latitude, altitude = location.longitude, location.latitude, location.altitude
+#
+#     tf = TimezoneFinder()
+#     timezone_str = tf.certain_timezone_at(lat=latitude, lng=longitude)
+#     if timezone_str is None:
+#         raise Exception("Could not determine the time zone")
+#
+#     return latitude, longitude, altitude, timezone_str
+#
+# def get_weather_data(station_id, start_date, end_date):
+#     df_weather = pvlib.iotools.read_midc_raw_data_from_nrel(station_id, start_date, end_date)
+#     df_weather = df_weather[['Global CMP22 [W/m^2]', 'Diffuse Schenk [W/m^2]',
+#                              'Direct CHP1 [W/m^2]', 'Air Temperature [deg C]', 'Avg Wind Speed @ 10m [m/s]']]
+#     df_weather.columns = ['ghi', 'dhi', 'dni', 'temp_air', 'wind_speed']
+#     return df_weather
+#
+# # User inputs
+# address = tab1.text_input('Address of PV System, Example: Champ de Mars, Paris, France')
+# surface_tilt = tab1.number_input("Surface Tilt", 30)
+# surface_azimuth = tab1.number_input("Surface Azimuth", 180)
+#
+# # Get location data
+# latitude, longitude, altitude, timezone_str = get_location_data(address)
+#
+# # Define the location object
+# location = pvlib.location.Location(latitude=latitude, longitude=longitude, altitude=altitude, tz=timezone_str)
+#
+# # TODO: Get correct station id based on location information
+# # TODO: Cache this so it does not have to reload every time
+#
+# station_id = 'UOSMRL'  # This should be replaced with a function that finds the closest station to the location
+# start_date = pd.Timestamp('20210601')
+# end_date = pd.Timestamp('20210601')
+#
+# # Get weather data
+# df_weather = get_weather_data(station_id, start_date, end_date)
+#
+# # Display the weather data in Streamlit
+# tab2.dataframe(df_weather)
+#
+# # Get Solar panel
+# module_data = cec_mod_db.iloc[:, 0]
+# tab3.dataframe(module_data)
+#
+# # Get Inverter
+# inverter_data = invert_df["ABB__PVI_3_0_OUTD_S_US__208V_"]
+# tab4.dataframe(inverter_data)
+#
+# with st.form(key='pv_advanced_form'):
+#     address = st.text_input('Address of PV System, Example: Champ de Mars, Paris, France')
+#     surface_tilt = st.number_input("Surface Tilt", 30)
+#     surface_azimuth = st.number_input("Surface Azimuth", 180)
+#     submit_pv_form = st.form_submit_button("Submit")
+#
+# if submit_pv_form:
+#     if latitude is None or longitude is None or altitude is None or timezone_str is None:
+#         st.error("Invalid address. Please provide a valid address.")
+#     else:
+#         # Define the location object
+#         location = pvlib.location.Location(latitude=latitude, longitude=longitude, altitude=altitude,
+#                                            tz=timezone_str)
+#         with st.spinner('Loading...'):
+#             # Define Temperature Parameters
+#             temperature_model_parameters = pvlib.temperature.TEMPERATURE_MODEL_PARAMETERS['sapm'][
+#                 'open_rack_glass_glass']
+#             # Define the basics of the class PVSystem
+#             system = pvlib.pvsystem.PVSystem(surface_tilt=surface_tilt,
+#                                              surface_azimuth=surface_azimuth,
+#                                              module_parameters=module_data,
+#                                              inverter_parameters=inverter_data,
+#                                              temperature_model_parameters=temperature_model_parameters
+#                                              )
+#
+#             # Creation of the ModelChain object
+#             mc = pvlib.modelchain.ModelChain(system, location,
+#                                              aoi_model='no_loss',
+#                                              spectral_model='no_loss',
+#                                              name='AssessingSolar_PV')
+#             mc.run_model(df_weather)
+#
+#             # Plot of Power Output
+#             fig, ax = plt.subplots(figsize=(7, 3))
+#
+#             mc.results.dc['p_mp'].plot(label='DC power', ax=ax)
+#             ax = mc.results.ac.plot(label='AC power', ax=ax)
+#
+#             ax.xaxis.set_major_formatter(DateFormatter("%H:%M"))
+#             ax.set_ylabel('Power [W]')
+#             ax.set_xlabel('UTC Time [HH:MM]')
+#             ax.set_title('Power Output of PV System')
+#             plt.legend()
+#             plt.tight_layout()
+#             plt.show()
+#             st.pyplot(fig)
+#
+#             # Estimate solar energy available and generated
+#             poa_energy = mc.results.total_irrad['poa_global'].sum() * (1 / 60) / 1000  # Daily POA irradiation in kWh
+#             dc_energy = mc.results.dc['p_mp'].sum() * (1 / 60) / 1000  # Daily DC energy in kWh
+#
+#             # Output results
+#             st.write('*' * 15, ' Daily Production ', '*' * 15, '\n', '-' * 48)
+#             st.write('\tPOA irradiation: ', "%.2f" % poa_energy, 'kWh')
+#             st.write('\tInstalled PV Capacity: ', "%.2f" % module_data['STC'], 'W')
+#             st.write('\tDC generation:', "%.2f" % dc_energy, 'kWh (', '%.2f' % (dc_energy * 1000 / module_data['STC']),
+#                      'kWh/kWp)')
+#
+#             st.dataframe(mc.results.dc['p_mp'])
 
-st.title("PV")
-
-pv_container = st.container()
-
-pv_advanced_form = pv_container.form("pv_ad_form")
-
-tab1, tab2, tab3, tab4 = pv_advanced_form.tabs(["Location", "Weather Data", "Solar Panel Data", "Inverter Data"])
-
-# TODO: Check back we might need to cache these
-cec_mod_db = pvlib.pvsystem.retrieve_sam('CECmod')  # Solar panel DataBase
-invert_df = pvlib.pvsystem.retrieve_sam('CECInverter')  # Inverter Database
-
-
-# TODO: Add a try and except here
-
-#Location Handling
-address = tab1.text_input('Address of PV System, Example: Champ de Mars, Paris, France')
-surface_tilt = tab1.number_input("Surface Tilt", 30)
-surface_azimuth = tab1.number_input("Surface Azimuth", 180)
-
-locator = geopy.Nominatim(user_agent="myGeocoder")
-tf = timezonefinder.TimezoneFinder()
-location = locator.geocode(address)
-longitude, latitude, altitude = location.longitude, location.latitude, location.altitude
-
-@cache
-def get_location(lat, long):
-
-
-
-def get_tz():
-    try:
-        timezone_str = tf.certain_timezone_at(lat=latitude, lng=longitude)
-
-        if timezone_str is None:
-            raise Exception("Could not determine the time zone")
-        else:
-            # Display the current time in that time zone
-            timezone = pytz.timezone(timezone_str)
-            dt = datetime.datetime.utcnow()
-            print("The time in %s is %s" % (timezone_str, dt + timezone.utcoffset(dt)))
-    except Exception as inst:
-        e = inst.args
-        if e == "Could not determine the time zone":
-            print("")
-
-
-
-
-
-
-# Define the location object
-location = pvlib.location.Location(latitude=latitude, longitude=longitude, altitude=altitude, tz= timezone_str)
-
-# TODO: Get correct station id based on location information
-# TODO: Cache this so it does not have to reload every time
-
-# Weather df
-df_weather = pvlib.iotools.read_midc_raw_data_from_nrel('UOSMRL',  # Station id
-                                                        pd.Timestamp('20210601'),  # Start date YYYYMMDD
-                                                        pd.Timestamp('20210601'))  # End date  YYYYMMDD
-df_weather = df_weather[['Global CMP22 [W/m^2]', 'Diffuse Schenk [W/m^2]',
-                         'Direct CHP1 [W/m^2]', 'Air Temperature [deg C]', 'Avg Wind Speed @ 10m [m/s]']]
-df_weather_copy = df_weather.copy()
-
-df_weather.columns = ['ghi', 'dhi', 'dni', 'temp_air', 'wind_speed']
-
-tab2.dataframe(df_weather_copy)
-
-# Get Solar panel
-# Define the PV Module and the Inverter from the CEC databases (For example, the first entry of the databases)
-module_data = cec_mod_db.iloc[:, 0]
-
-tab3.dataframe(module_data)
-
-# Get Inverter
-inverter_data = invert_df["ABB__PVI_3_0_OUTD_S_US__208V_"]
-
-tab4.dataframe(inverter_data)
-
-submit_pv_form = pv_advanced_form.form_submit_button("Submit")
-
-if submit_pv_form:
-    with st.spinner('Loading...'):
-        # TODO: Double check what this is
-        # Define Temperature Paremeters
-        temperature_model_parameters = pvlib.temperature.TEMPERATURE_MODEL_PARAMETERS['sapm'][
-            'open_rack_glass_glass']
-        # Define the basics of the class PVSystem
-        system = pvlib.pvsystem.PVSystem(surface_tilt=surface_tilt,
-                                         surface_azimuth=surface_azimuth,
-                                         module_parameters=module_data,
-                                         inverter_parameters=inverter_data,
-                                         temperature_model_parameters=temperature_model_parameters
-                                         )
-
-        # Creation of the ModelChain object
-        """ The example does not consider AOI losses nor irradiance spectral losses"""
-        mc = pvlib.modelchain.ModelChain(system, location,
-                                         aoi_model='no_loss',
-                                         spectral_model='no_loss',
-                                         name='AssessingSolar_PV')
-        mc.run_model(df_weather)
-
-        # Plot of Power Output
-        fig, ax = plt.subplots(figsize=(7, 3))
-
-        mc.results.dc['p_mp'].plot(label='DC power')
-        print(mc.results.dc['p_mp'])
-        print(type(mc.results.dc['p_mp']))
-        ax = mc.results.ac.plot(label='AC power')
-
-        ax.xaxis.set_major_formatter(DateFormatter("%H:%M"))
-        ax.set_ylabel('Power [W]')
-        ax.set_xlabel('UTC Time [HH:MM]')
-        ax.set_title('Power Output of PV System')
-        plt.legend()
-        plt.tight_layout()
-        plt.show()
-        st.pyplot(fig)
-
-        # Estimate solar energy available and generated
-        poa_energy = mc.results.total_irrad['poa_global'].sum() * (1 / 60) / 1000  # Daily POA irradiation in kWh
-        dc_energy = mc.results.dc['p_mp'].sum() * (1 / 60) / 1000  # Daily DC energy in kWh
-        # ac_energy = mc.results.ac.sum() * (1 / 60) / 1000  # Daily AC energy in kWh
-
-        print('*' * 15, ' Daily Production ', '*' * 15, '\n', '-' * 48)
-        print('\tPOA irradiation: ', "%.2f" % poa_energy, 'kWh')
-        print('\tInstalled PV Capacity: ', "%.2f" % module_data['STC'], 'W')
-        print('\tDC generation:', "%.2f" % dc_energy, 'kWh (', '%.2f' % (dc_energy * 1000 / module_data['STC']),
-              'kWh/kWp)')
-        # print('\tAC generation:', "%.2f" % ac_energy, 'kWh (', '%.2f' % (ac_energy * 1000 / module_data['STC']),
-        #       'kWh/kWp)')
-        # print('-' * 50)
-
-        st.dataframe(mc.results.dc['p_mp'])
