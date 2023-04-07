@@ -28,39 +28,51 @@ st.title("Hub Model Explanation")
 # TODO:Finish explanation
 model_explanation = st.container()
 
+# Create a container for the vehicle explanation section
 vehicle_explanation_container = st.container()
-vehicle_explanation_container.subheader("Vehicle Explanation")
-"""The following vehicle classes were used in this model"""
-vehicle_explanation_twelve_class_chart = vehicle_explanation_container.expander("The Twelve Vehicle Classes")
 
-options = {
+# Add a subheader for the vehicle explanation section
+vehicle_explanation_container.subheader("Vehicle Explanation")
+
+# Add a comment about the vehicle classes used in the model
+vehicle_classes_comment = "The following twelve vehicle classes were used in this model:"
+vehicle_classes_expander = vehicle_explanation_container.expander(vehicle_classes_comment)
+# Create an ECharts chart to display the twelve vehicle classes
+vehicle_classes_chart = {
     "tooltip": {"trigger": "axis", "axisPointer": {"type": "shadow"}},
     "legend": {
-        "data": ["mi/kW", "miles/yr", "kWh/yr"]
+        "data": ["mi/kW", "miles/yr", "kWh/yr"],
+        "selectedMode": "single",  # Allow only one legend item to be selected at a time
+        "selected": {"mi/kW": True},  # Initially select the "mi/kW" legend item
     },
     "grid": {"left": "3%", "right": "4%", "bottom": "3%", "containLabel": True},
     "xAxis": {"type": "value"},
     "yAxis": {
         "type": "category",
-        "data": ["Sedan Average",
-                 "Sedan (Urban/Low)",
-                 "Sedan High/Rideshare",
-                 "SUV",
-                 "PU/Van (Class 1-2)",
-                 "Class3/4 (SmBox, Minibus)",
-                 "Class5/6 (School,Bucket: L)",
-                 "Class5/6 (School,Bucket: H)",
-                 "Class7 (Refuse, Transit: L)",
-                 "Class7 (Refuse, Transit: H)",
-                 "Class8 (local)",
-                 "Class8 (freight)"]
+        "data": [
+            "Sedan Average",
+            "Sedan (Urban/Low)",
+            "Sedan High/Rideshare",
+            "SUV",
+            "PU/Van (Class 1-2)",
+            "Class3/4 (SmBox, Minibus)",
+            "Class5/6 (School,Bucket: L)",
+            "Class5/6 (School,Bucket: H)",
+            "Class7 (Refuse, Transit: L)",
+            "Class7 (Refuse, Transit: H)",
+            "Class8 (local)",
+            "Class8 (freight)",
+        ],
     },
     "series": [
         {
             "name": "mi/kW",
             "type": "bar",
             "stack": "total",
-            "label": {"show": True},
+            "label": {
+                "show": True,
+                "position": "outsideRight"
+            },
             "emphasis": {"focus": "series"},
             "data": [3.8, 3.9, 3.8, 3, 2, 1.5, 0.65, 0.65, 0.5, 0.5, 0.4, 0.35],
         },
@@ -68,7 +80,10 @@ options = {
             "name": "miles/yr",
             "type": "bar",
             "stack": "total",
-            "label": {"show": True},
+            "label": {
+                "show": True,
+                "position": "outsideRight"
+            },
             "emphasis": {"focus": "series"},
             "data": [16100, 8000, 45000, 16100, 14000, 12000, 12000, 40000, 25000, 40000, 50000, 60000],
         },
@@ -76,19 +91,25 @@ options = {
             "name": "kWh/yr",
             "type": "bar",
             "stack": "total",
-            "label": {"show": True},
+            "label": {
+                "show": True,
+                "position": "outsideRight"
+            },
             "emphasis": {"focus": "series"},
             "data": [4237, 2051, 11842, 5367, 7000, 8000, 18462, 61538, 50000, 80000, 125000, 171429],
-        }
-
+        },
     ],
 }
-
-vehicle_explanation_twelve_class_chart_empty = vehicle_explanation_twelve_class_chart.empty()
-with vehicle_explanation_twelve_class_chart_empty:
-    st_echarts(options=options, height="500px")
-
+# Create an empty expander to hold the ECharts chart
+vehicle_classes_chart_expander = vehicle_classes_expander.empty()
+# Add the ECharts chart to the expander
+with vehicle_classes_chart_expander:
+    st_echarts(options=vehicle_classes_chart, height="500px")
 """For the model, the twelve vehicle classes were aggregated into three groups. """
+
+
+
+
 
 # if veh_class == 0:
 #     self.mi_kWH = pq.Quantity(3.181, 'miles / (kW * hour)')
@@ -121,7 +142,6 @@ selected_hub_type = st.sidebar.selectbox(
     hub_types
 )
 
-# TODO: Finish adding all the parameters for each hub
 # Hub Types
 if selected_hub_type == "Rural":
     hub = Hub(selected_hub_type,
@@ -144,10 +164,8 @@ elif selected_hub_type == "Urban Multimodal":
               [0.7, 0.5],
               [Port(pq.Quantity(150, 'kW')) for i in range(8)] + [Port(pq.Quantity(300, 'kW')) for i in range(2)] ,
               [0.35, 0.5, 0.15])
-# Hub Info
-# TODO: Finish this
 
-# Hubinfo expander
+#Hub info expander
 hubinfocontainer = st.sidebar.container()
 hubinfocontainercol1, hubinfocontainercol2 = hubinfocontainer.columns(2)
 maincol1expander = hubinfocontainercol1.expander("Hub Information ", expanded=True)
@@ -349,13 +367,9 @@ vehicle_throughput_explanation_expander.text("Comeback")
 # """
 
 st.title("Simulated Vehicle Throughput")
-
-
 @st.cache
 def hub_sim(model, date):
     return model.graphic_sim(date)
-
-
 df1, df2, df3, df4 = hub_sim(hub, "1/31/2022")
 
 simulated_data_graphs = st.expander("Simulated Data Graphs")
@@ -402,9 +416,13 @@ for i, vehicle_class in enumerate(["Class 1-2", "Class 3-6", "Class 7-8"]):
     except KeyError:
         sessions_chart.metric(vehicle_class, 0)
 
+
+
+
+
+
 #Solar Panel
 st.title("PV Energy Estimation")
-
 def get_location(address):
     geolocator = Nominatim(user_agent="pv_energy_estimator")
     max_retries = 3
@@ -507,6 +525,8 @@ def get_nsrdb_data(latitude, longitude, start_date, end_date, api_key):
     weather_data["dni_extra"] = pvlib.irradiance.get_extra_radiation(weather_data.index)
 
     return weather_data
+
+#TODO: Fix it
 #PV Form
 with st.form(key='input_form'):
     st.subheader("Enter the required information:")
@@ -529,7 +549,6 @@ with st.form(key='input_form'):
         st.write(sandia_inverters[inverter_input])
 
     submit_button = st.form_submit_button("Submit")
-
 if submit_button:
     site = get_location(address_input)
 
