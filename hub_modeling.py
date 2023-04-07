@@ -106,10 +106,7 @@ vehicle_classes_chart_expander = vehicle_classes_expander.empty()
 with vehicle_classes_chart_expander:
     st_echarts(options=vehicle_classes_chart, height="500px")
 """For the model, the twelve vehicle classes were aggregated into three groups. """
-
-
-
-
+#TODO:Finish the vehicle aggregated graph
 
 # if veh_class == 0:
 #     self.mi_kWH = pq.Quantity(3.181, 'miles / (kW * hour)')
@@ -167,9 +164,8 @@ elif selected_hub_type == "Urban Multimodal":
 
 #Hub info expander
 hubinfocontainer = st.sidebar.container()
-hubinfocontainercol1, hubinfocontainercol2 = hubinfocontainer.columns(2)
-maincol1expander = hubinfocontainercol1.expander("Hub Information ", expanded=True)
-maincol1expander.markdown(
+hubinfoexpander = hubinfocontainer.expander("Hub Information ", expanded=True)
+hubinfoexpander.markdown(
     """
 <style>
 .streamlit-expanderHeader {
@@ -179,24 +175,62 @@ maincol1expander.markdown(
 """,
     unsafe_allow_html=True,
 )
-maincol1expander.markdown(
+hubinfoexpander.markdown(
     "<p style='text-align: left; color: black; text-indent: 15%;'>Hub Type:       {}</p>".format(
         hub.hub_id), unsafe_allow_html=True)
-maincol1expander.markdown(
+hubinfoexpander.markdown(
     "<p style='text-align: left; color: black; text-indent: 15%;'>Total Ports:        {}</p>".format(
         hub.total_ports), unsafe_allow_html=True)
-maincol1expander.markdown(
+hubinfoexpander.markdown(
     "<p style='text-align: left; color: black; text-underline-offset: 20%; text-indent: 15%;'><u>Types of Ports</u></p>",
     unsafe_allow_html=True)
-
 for i in hub.port_types.keys():
-    maincol1expander.markdown(
+    hubinfoexpander.markdown(
         "<p style='text-align: left; color: black; text-underline-offset: 20%; text-indent: 20%;'>• {}</p>".format(
             str(int(i)) + "kW x " + str(hub.port_types[i])),
         unsafe_allow_html=True)
 
-maincol2expander = hubinfocontainercol2.expander("Retail and TDU Charges", expanded=True)
-maincol2expander.text("Work In Progress")
+retail_charge_expander = st.sidebar.expander("Retail and TDU Charges")
+pq.markup.config.use_unicode = True
+unitsDollars = pq.UnitQuantity('USD', 1, symbol='$')
+# initialize a list to store the charges
+charges = []
+if "charges" not in st.session_state:
+    st.session_state.charges = []
+# define a function to add a new charge to the list
+def add_charge(name, cost, unit):
+    charge = {
+        'name': name,
+        'cost': cost,
+        'unit': unit
+    }
+    st.session_state.charges.append(charge)
+
+# define a function to display the charges as a table
+def display_charges():
+    total_cost = 0
+    for charge in st.session_state.charges:
+        total_cost += charge['cost']
+    retail_charge_expander.write(f"Total cost of charges: ${total_cost:.2f}")
+    retail_charge_expander.write("Charges:")
+    for i, charge in enumerate(st.session_state.charges):
+        retail_charge_expander.write(f"{i+1}. {charge['name']}: {charge['cost']:.2f} {charge['unit']}")
+
+
+# define input fields for adding a new charge
+new_charge_name = retail_charge_expander.text_input("Charge name")
+new_charge_cost = retail_charge_expander.number_input("Charge cost")
+new_charge_unit = retail_charge_expander.selectbox("Charge unit", ["USD / kWh", "USD / kW"])
+# add the new charge to the list when the "Add charge" button is clicked
+if retail_charge_expander.button("Add charge"):
+    add_charge(new_charge_name, new_charge_cost, new_charge_unit)
+    # clear the input fields for the next charge
+    new_charge_name = ""
+    new_charge_cost = 0
+    new_charge_unit = "USD / kWh"
+# display the current charges as a table
+display_charges()
+
 
 # Class Mixes
 classmix_expander = st.sidebar.expander("Vehicle Class Mix Sliders")

@@ -2,8 +2,6 @@ import quantities as pq
 from Port import Port
 
 class vehicleClass(object):
-    #TODO: Add doc string
-    #TODO: Add args** thing/ pop parameters into where they need to go
     def __init__(self, veh_class):
         if veh_class == 0:
             self.mi_kWH = pq.Quantity(3.181, 'miles / (kW * hour)')
