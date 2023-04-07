@@ -439,14 +439,3 @@ class Hub:
         df_power = df_power.set_index('Index').resample('M').max().reset_index()
 
         return df, df_temp1, df_temp2, df_power
-
-
-# Hub_Name = "Rural"
-# Hub_Notional_Loading = [0.6, 0.1]
-# Hub_Ports = [Port(pq.Quantity(150, 'kW')) for i in range(2)]
-# Hub_Vehicle_Mix = [0.4, 0.5, 0.1]
-#
-# hub = Hub(Hub_Name, Hub_Notional_Loading, Hub_Ports, Hub_Vehicle_Mix)
-#
-# df1, df2, df3, df4 = hub.graphic_sim("1/31/2022")
-# print("g")
