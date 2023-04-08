@@ -1,7 +1,9 @@
 import quantities as pq
+import numpy as np
+import pandas as pd
 from Port import Port
 
-class vehicleClass(object):
+class VehicleClass:
     def __init__(self, veh_class):
         if veh_class == 0:
             self.mi_kWH = pq.Quantity(3.181, 'miles / (kW * hour)')
@@ -16,60 +18,68 @@ class vehicleClass(object):
             self.mi_year = pq.Quantity(48750, 'miles / year')
             self.className = 'Class 7-8'
 
-class car(vehicleClass):
+
+class car(VehicleClass):
     def __init__(self, battery_capacity, vehicle_class):
-        super(car, self).__init__(vehicle_class)
+        super().__init__(vehicle_class)
         self.battery_capacity = battery_capacity  # Energy Capacity
-        self.battery = 0.1 * self.battery_capacity
-# #miles / kw*h
-# #miles / year -> year
-# #
-#         # TODO: Add a power curve this is important because the power curve for a given vehicle heavily impacts the "performance" of its charge session
-#         #Power curve affects the power rate which in turn affects charge time
-#         #if the current capacity >=5%   and <= 40%:
-#         self.week_kw_usage_to_be_met = (self.mi_year * (1/self.mi_kWH)).rescale('(kW * hour) / week') * pq.week
-#
-#         self.start_charge = self.battery * 0.8 # Vehicle is always between 10-90% SOC
-#         # TODO: Characterize charging behavior
+        self.battery = np.random.uniform(0.1, 0.3) * self.battery_capacity  # Set initial state of charge
 
-    def charge(self):
+    def charging_curve(self, port_power):
         """
-        This method should determine how much energy kW the vehicle needs
-        :return: vehicle consumption
+        Synthesize charging curve for the car.
+        :param port_power: Maximum power of the charging port
+        :return: A function representing the charging curve
         """
-        if self.className == 'Class 1-2' or self.className == 'Class 3-6':
-            return ((self.mi_year * (1/self.mi_kWH)).rescale('(kW * hour) / week') * pq.week) / 2
-        else:
-            return ((self.mi_year * (1/self.mi_kWH)).rescale('(kW * hour) / day') * pq.day)
+        max_charging_speed = min(self.battery_capacity / 4, port_power)  # Limit the charging speed by port power
 
-    def charge_time(self, port_used):
+        def curve(t):
+            if t < 0.5:
+                return 2 * max_charging_speed * t
+            elif 0.5 <= t < 1.5:
+                return max_charging_speed
+            else:
+                return max_charging_speed * (2 - t)
+
+        return curve
+
+    def charge_time(self, port_used, target_battery_percentage):
         """
-        have the return do magnitude and float
-        :param port_used:
-        :return:
+        Calculate the charge time in minutes considering the charging curve.
+        :param port_used: Port object
+        :param target_battery_percentage: Target state of charge as a percentage of battery capacity
+        :return: Charge time in minutes
         """
-        #TODO: fix
+        curve = self.charging_curve(port_used.Port_kW.magnitude)
+        remaining_charge = self.battery_capacity * target_battery_percentage - self.battery
+        time = 0
+        total_charge = 0
 
-        return float((((self.mi_year * (1/self.mi_kWH)).rescale('(kW * hour) / month')  / port_used.Port_kW) * pq.month).rescale("minute").magnitude)
+        while total_charge < remaining_charge:
+            total_charge += curve(time) * 1 / 60  # 1/60 hour per minute
+            time += 1
 
+        return time
 
+    def charge_session(self, session_start_time, port_used, target_battery_percentage):
+        """
+        Create a DataFrame representing the charging session.
+        :param session_start_time: Timestamp object
+        :param port_used: Port object
+        :param target_battery_percentage: Target state of charge as a percentage of battery capacity
+        :return: DataFrame with time, charging speed, and battery state columns
+        """
+        charge_time_minutes = self.charge_time(port_used, target_battery_percentage)
+        session_end_time = session_start_time + pd.to_timedelta(charge_time_minutes, unit='minutes')
+        time_range = pd.date_range(start=session_start_time, end=session_end_time, freq='1T')
 
+        curve = self.charging_curve(port_used.Port_kW.magnitude)
+        charging_speed = [curve(t) for t in np.arange(0, charge_time_minutes / 60, 1 / 60)]
 
-'''
-13.459737530823492 h*kW/d
-35.62580730318138 h*kW/d
-325.54408943201827 h*kW/d
+        battery_state = [self.battery + pq.Quantity(cumulative_charge, 'kW * hour') for cumulative_charge in
+                         np.cumsum(charging_speed) * 1 / 60]
 
-Class C vehicles will have to charge once per day 
+        session_df = pd.DataFrame(
+            {'time': time_range, 'charging_speed': charging_speed, 'battery_state': battery_state})
 
-
-
-How much does each vehicle need within a session consumption per day
-Class A needs 15%
-Class b needs 15%
-Class C needs 60%
-
-Dont generated vehicle if there is already a vehicle of that vehicle class still in the queue
-Is there a difference between a vehicle being serviced 
-
-'''
+        return session_df

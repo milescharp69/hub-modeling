@@ -3,33 +3,10 @@ from streamlit_echarts import st_echarts
 import quantities as pq
 from Hub import Hub
 from Port import Port
-import pvlib
-import pandas as pd
-from pvlib import location
-from pvlib import irradiance
-from pvlib import pvsystem
-from datetime import timedelta
-import matplotlib.pyplot as plt
-from matplotlib.dates import DateFormatter
 from VehicleClass import car
 import datetime
-import geopy
-from timezonefinder import TimezoneFinder
-import pytz
-from geopy.geocoders import Nominatim
-from timezonefinder import TimezoneFinder
-from geopy.exc import GeocoderTimedOut, GeocoderUnavailable, GeocoderServiceError
-from haversine import haversine, Unit
 import requests
-import io
 import numpy as np
-import matplotlib.dates as mdates
-import pvlib
-from pvlib.modelchain import ModelChain
-from pvlib.location import Location
-from pvlib.pvsystem import PVSystem, Array, FixedMount
-from pvlib.temperature import TEMPERATURE_MODEL_PARAMETERS
-import matplotlib.pyplot as plt
 import pandas as pd
 import plotly.express as px
 
@@ -286,118 +263,118 @@ if hub.usage_factor != hub_copy.usage_factor or hub.vehicle_mix != hub_copy.vehi
 elif hub.usage_factor == hub_copy.usage_factor or hub.vehicle_mix == hub_copy.vehicle_mix:
     hub_changed = False
 
-# Figures
-vehicle_throughput_container = st.container()
-vehicle_throughput_container.subheader("Vehicle Throughput")
-vehicle_throughput_container.text("This section calculates the maximum throughput a given hub could service.")
-vehicle_throughput_expander = vehicle_throughput_container.expander("Throughput")
-hub_max = Hub(hub.hub_id, [1, 1], hub.hub_ports, hub.vehicle_mix)
-hub_serviced_vehicles = hub.vehicles_serviced()
-hub_max_serviced_vehicles = hub_max.vehicles_serviced()
-hub_copy_serviced_vehicles = hub_copy.vehicles_serviced()
-
-####################
-# Bar graph
-if hub_changed:
-    BARGRAPH_xaxislabels = ["Typical Use", "Max Use", "Custom Use"]
-    BARGRAPH_seriesdata = [{
-        "name": "Class A",
-        "type": 'bar',
-        "stack": 'Ad',
-        "emphasis": {
-            "focus": 'series'
-        },
-        "data": [hub_serviced_vehicles[0], hub_max_serviced_vehicles[0], hub_copy_serviced_vehicles[0]]
-    },
-        {
-            "name": "Class B",
-            "type": 'bar',
-            "stack": 'Ad',
-            "emphasis": {
-                "focus": 'series'
-            },
-            "data": [hub_serviced_vehicles[1], hub_max_serviced_vehicles[1], hub_copy_serviced_vehicles[1]]
-        },
-        {
-            "name": "Class c",
-            "type": 'bar',
-            "stack": 'Ad',
-            "emphasis": {
-                "focus": 'series'
-            },
-            "data": [hub_serviced_vehicles[2], hub_max_serviced_vehicles[2], hub_copy_serviced_vehicles[2]]
-        }
-
-    ]
-else:
-    BARGRAPH_xaxislabels = ["Typical Use", "Max Use"]
-    BARGRAPH_seriesdata = [{
-        "name": "Class A",
-        "type": 'bar',
-        "stack": 'Ad',
-        "emphasis": {
-            "focus": 'series'
-        },
-        "data": [hub_serviced_vehicles[0], hub_max_serviced_vehicles[0]]
-    },
-        {
-            "name": "Class B",
-            "type": 'bar',
-            "stack": 'Ad',
-            "emphasis": {
-                "focus": 'series'
-            },
-            "data": [hub_serviced_vehicles[1], hub_max_serviced_vehicles[1]]
-        },
-        {
-            "name": "Class c",
-            "type": 'bar',
-            "stack": 'Ad',
-            "emphasis": {
-                "focus": 'series'
-            },
-            "data": [hub_serviced_vehicles[2], hub_max_serviced_vehicles[2]]
-        }
-
-    ]
-
-option = {
-    "tooltip": {
-        "trigger": 'axis',
-        "axisPointer": {
-            "type": 'shadow'
-        }
-    },
-    "legend": {},
-    "grid": {
-        "left": '3%',
-        "right": '4%',
-        "bottom": '3%',
-        "containLabel": "true"
-    },
-    "xAxis": [
-        {
-            "name": 'Hub Type',
-            "type": 'category',
-            "data": BARGRAPH_xaxislabels
-        }
-    ],
-    "yAxis": [
-        {
-            "name": 'Vehicle Throughput',
-            "type": 'value'
-        }
-    ],
-    "series": BARGRAPH_seriesdata
-}
-
-test = vehicle_throughput_expander.empty()
-with test:
-    st_echarts(options=option)
-
-# TODO: Finish explanation how
-vehicle_throughput_explanation_expander = vehicle_throughput_container.expander("Explanation")
-vehicle_throughput_explanation_expander.text("Comeback")
+# # Figures
+# vehicle_throughput_container = st.container()
+# vehicle_throughput_container.subheader("Vehicle Throughput")
+# vehicle_throughput_container.text("This section calculates the maximum throughput a given hub could service.")
+# vehicle_throughput_expander = vehicle_throughput_container.expander("Throughput")
+# hub_max = Hub(hub.hub_id, [1, 1], hub.hub_ports, hub.vehicle_mix)
+# hub_serviced_vehicles = hub.vehicles_serviced()
+# hub_max_serviced_vehicles = hub_max.vehicles_serviced()
+# hub_copy_serviced_vehicles = hub_copy.vehicles_serviced()
+#
+# ####################
+# # Bar graph
+# if hub_changed:
+#     BARGRAPH_xaxislabels = ["Typical Use", "Max Use", "Custom Use"]
+#     BARGRAPH_seriesdata = [{
+#         "name": "Class A",
+#         "type": 'bar',
+#         "stack": 'Ad',
+#         "emphasis": {
+#             "focus": 'series'
+#         },
+#         "data": [hub_serviced_vehicles[0], hub_max_serviced_vehicles[0], hub_copy_serviced_vehicles[0]]
+#     },
+#         {
+#             "name": "Class B",
+#             "type": 'bar',
+#             "stack": 'Ad',
+#             "emphasis": {
+#                 "focus": 'series'
+#             },
+#             "data": [hub_serviced_vehicles[1], hub_max_serviced_vehicles[1], hub_copy_serviced_vehicles[1]]
+#         },
+#         {
+#             "name": "Class c",
+#             "type": 'bar',
+#             "stack": 'Ad',
+#             "emphasis": {
+#                 "focus": 'series'
+#             },
+#             "data": [hub_serviced_vehicles[2], hub_max_serviced_vehicles[2], hub_copy_serviced_vehicles[2]]
+#         }
+#
+#     ]
+# else:
+#     BARGRAPH_xaxislabels = ["Typical Use", "Max Use"]
+#     BARGRAPH_seriesdata = [{
+#         "name": "Class A",
+#         "type": 'bar',
+#         "stack": 'Ad',
+#         "emphasis": {
+#             "focus": 'series'
+#         },
+#         "data": [hub_serviced_vehicles[0], hub_max_serviced_vehicles[0]]
+#     },
+#         {
+#             "name": "Class B",
+#             "type": 'bar',
+#             "stack": 'Ad',
+#             "emphasis": {
+#                 "focus": 'series'
+#             },
+#             "data": [hub_serviced_vehicles[1], hub_max_serviced_vehicles[1]]
+#         },
+#         {
+#             "name": "Class c",
+#             "type": 'bar',
+#             "stack": 'Ad',
+#             "emphasis": {
+#                 "focus": 'series'
+#             },
+#             "data": [hub_serviced_vehicles[2], hub_max_serviced_vehicles[2]]
+#         }
+#
+#     ]
+#
+# option = {
+#     "tooltip": {
+#         "trigger": 'axis',
+#         "axisPointer": {
+#             "type": 'shadow'
+#         }
+#     },
+#     "legend": {},
+#     "grid": {
+#         "left": '3%',
+#         "right": '4%',
+#         "bottom": '3%',
+#         "containLabel": "true"
+#     },
+#     "xAxis": [
+#         {
+#             "name": 'Hub Type',
+#             "type": 'category',
+#             "data": BARGRAPH_xaxislabels
+#         }
+#     ],
+#     "yAxis": [
+#         {
+#             "name": 'Vehicle Throughput',
+#             "type": 'value'
+#         }
+#     ],
+#     "series": BARGRAPH_seriesdata
+# }
+#
+# test = vehicle_throughput_expander.empty()
+# with test:
+#     st_echarts(options=option)
+#
+# # TODO: Finish explanation how
+# vehicle_throughput_explanation_expander = vehicle_throughput_container.expander("Explanation")
+# vehicle_throughput_explanation_expander.text("Comeback")
 
 #
 # """
@@ -505,6 +482,12 @@ with st.form(key='input_form'):
     losses = st.number_input("Losses (%):", 0, 100, 14)
     submit_button = st.form_submit_button("Submit")
 
+# Initialize session state for the figures
+if "fig_power" not in st.session_state:
+    st.session_state.fig_power = None
+if "fig_daily" not in st.session_state:
+    st.session_state.fig_daily = None
+
 if submit_button:
     if address_input:
         api_key = 'tOKQdaCJ873TY4aHH8ipheCxZtX86dwvv5fFSPL4'
@@ -520,10 +503,8 @@ if submit_button:
                                    dict(step="all")
                                ])),
                                range=[dc.index[0], dc.index[0] + datetime.timedelta(days=1)])
-        st.plotly_chart(fig_power)
-
         # Create an interactive plot with Plotly
-        dc_daily = dc.resample("D").sum() / 1000
+        dc_daily = dc.resample("2H").sum() / 1000
         fig = px.line(x=dc_daily.index, y=dc_daily, labels={"x": "Date", "y": "DC Output (kWh)"}, title="Daily DC Output")
         fig.update_xaxes(rangeslider_visible=True,
                          rangeselector=dict(buttons=list([
@@ -533,13 +514,14 @@ if submit_button:
                              dict(step="all")
                          ])),
                          range=[dc_daily.index[0], dc_daily.index[0] + datetime.timedelta(days=1)])
-        st.plotly_chart(fig)
-
+        st.session_state.fig_power = fig_power
+        st.session_state.fig_daily = fig
     else:
         st.error("Invalid address. Please enter a valid address.")
 
-
-
-
+#So figure are not reloaded
+if st.session_state.fig_power and st.session_state.fig_daily:
+    st.plotly_chart(st.session_state.fig_power)
+    st.plotly_chart(st.session_state.fig_daily)
 
 st.title("Cost Estimation")
