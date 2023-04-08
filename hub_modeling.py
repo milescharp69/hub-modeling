@@ -23,6 +23,16 @@ from haversine import haversine, Unit
 import requests
 import io
 import numpy as np
+import matplotlib.dates as mdates
+import pvlib
+from pvlib.modelchain import ModelChain
+from pvlib.location import Location
+from pvlib.pvsystem import PVSystem, Array, FixedMount
+from pvlib.temperature import TEMPERATURE_MODEL_PARAMETERS
+import matplotlib.pyplot as plt
+import pandas as pd
+import plotly.express as px
+
 st.title("Hub Model Explanation")
 
 # TODO:Finish explanation
@@ -216,7 +226,6 @@ def display_charges():
     for i, charge in enumerate(st.session_state.charges):
         retail_charge_expander.write(f"{i+1}. {charge['name']}: {charge['cost']:.2f} {charge['unit']}")
 
-
 # define input fields for adding a new charge
 new_charge_name = retail_charge_expander.text_input("Charge name")
 new_charge_cost = retail_charge_expander.number_input("Charge cost")
@@ -230,7 +239,6 @@ if retail_charge_expander.button("Add charge"):
     new_charge_unit = "USD / kWh"
 # display the current charges as a table
 display_charges()
-
 
 # Class Mixes
 classmix_expander = st.sidebar.expander("Vehicle Class Mix Sliders")
@@ -451,156 +459,87 @@ for i, vehicle_class in enumerate(["Class 1-2", "Class 3-6", "Class 7-8"]):
         sessions_chart.metric(vehicle_class, 0)
 
 
-
-
-
-
 #Solar Panel
 st.title("PV Energy Estimation")
-def get_location(address):
-    geolocator = Nominatim(user_agent="pv_energy_estimator")
-    max_retries = 3
-    timeout = 1
+@st.cache
+def estimate_energy(api_key, address, azimuth, tilt, system_capacity, array_type, module_type, losses):
+    pvwatts_data = get_pvwatts_data(api_key, address, azimuth=azimuth, tilt=tilt, system_capacity=system_capacity, array_type=array_type, module_type=module_type, losses=losses)
 
-    for i in range(max_retries):
-        try:
-            location = geolocator.geocode(address, timeout=timeout)
-            if location is not None:
-                latitude = location.latitude
-                longitude = location.longitude
-                timezone = TimezoneFinder().timezone_at(lng=longitude, lat=latitude)
-                return pvlib.location.Location(latitude, longitude, tz=timezone)
-            else:
-                return None
-        except (GeocoderTimedOut, GeocoderUnavailable, GeocoderServiceError):
-            timeout *= 2  # Increase the timeout for the next attempt
+    hours = len(pvwatts_data['outputs']['dc'])
+    date_range = pd.date_range(start="2022-01-01", periods=hours, freq="H")
+    dc_hourly = pd.Series(pvwatts_data['outputs']['dc'], index=date_range, name="DC Output (W)")
 
-    return None
-def estimate_energy(site, azimuth, tilt, module, inverter, weather_data):
-    # Define Temperature Paremeters
-    temperature_model_parameters = pvlib.temperature.TEMPERATURE_MODEL_PARAMETERS['sapm'][
-        'open_rack_glass_glass']
-    # Define the basics of the class PVSystem
-    system = pvlib.pvsystem.PVSystem(surface_tilt=tilt,
-                                     surface_azimuth=azimuth,
-                                     module_parameters=module,
-                                     inverter_parameters=inverter,
-                                     temperature_model_parameters=temperature_model_parameters
-                                     )
-    # Creation of the ModelChain object
-    """ The example does not consider AOI losses nor irradiance spectral losses"""
-    mc = pvlib.modelchain.ModelChain(system, site,
-                                     aoi_model='no_loss',
-                                     spectral_model='no_loss',
-                                     name='AssessingSolar_PV')
-    mc.run_model(weather_data)
-    # Plot the DC power output as a function of time
-    fig, ax = plt.subplots(figsize=(7, 3))
-    mc.results.dc['p_mp'].plot(ax=ax, label='DC Power Output')
-    ax.xaxis.set_major_formatter(DateFormatter("%H:%M"))
-    ax.set_ylabel('Power (W)')
-    ax.set_xlabel('Time (UTC)')
-    ax.set_title('DC Power Output of PV System')
-    ax.legend()
-    plt.tight_layout()
-    st.pyplot(fig)
+    return dc_hourly
 
-    # Calculate the daily energy generation and plot it as a function of time
-    dc_energy = mc.results.dc['p_mp'] / 60.0 / 1000.0  # convert from W to kWh
-    daily_energy = dc_energy.resample('D').sum()
-
-    fig, ax = plt.subplots(figsize=(7, 3))
-    daily_energy.plot(ax=ax, label='Daily Energy Generation')
-    ax.xaxis.set_major_formatter(DateFormatter("%Y-%m-%d"))
-    ax.set_ylabel('Energy (kWh)')
-    ax.set_xlabel('Date (UTC)')
-    ax.set_title('Daily Energy Generation of PV System')
-    ax.legend()
-    plt.tight_layout()
-    st.pyplot(fig)
-
-    return dc_energy
-def get_station_data():
-    api_key = 'tOKQdaCJ873TY4aHH8ipheCxZtX86dwvv5fFSPL4'  # Replace with your NREL API Key
-    url = f'https://developer.nrel.gov/api/midc_stations/v1.json?api_key={api_key}'
-    response = requests.get(url)
-
-    if response.status_code == 404:
-        raise Exception("API request returned 404 Not Found. Please check the API endpoint URL and parameters.")
-
-    data = response.json()
-    return pd.DataFrame(data['stations'])
-def get_nsrdb_data(latitude, longitude, start_date, end_date, api_key):
-    url = 'https://developer.nrel.gov/api/nsrdb/v2/solar/psm3-download.csv'
+def get_pvwatts_data(api_key, address, system_capacity=4, azimuth=180, tilt=20, array_type=1, module_type=1, losses=14):
+    url = 'https://developer.nrel.gov/api/pvwatts/v8'
     params = {
-        'wkt': f'POINT({longitude} {latitude})',
-        'names': f'{start_date.year}',
-        'leap_day': 'false',
-        'interval': '60',
-        'utc': 'false',
-        'full_name': 'Miles Charpentier',
-        'email': 'miles.charpentier.amaz@gmail.com',
-        'affiliation': 'Student',
-        'mailing_list': 'false',
-        'reason': 'research',
-        'api_key': api_key
+        'format': 'json',
+        'api_key': api_key,
+        'address': address,
+        'system_capacity': system_capacity,
+        'azimuth': azimuth,
+        'tilt': tilt,
+        'array_type': array_type,
+        'module_type': module_type,
+        'losses': losses,
+        'timeframe': 'hourly'  # Add timeframe parameter set to hourly
     }
 
     response = requests.get(url, params=params)
     response.raise_for_status()
 
-    weather_data = pd.read_csv(io.StringIO(response.text), skiprows=[0, 1])
-    weather_data.to_csv("weather_data.csv", index=False)
-    weather_data['Time'] = pd.to_datetime(weather_data.index)
-    weather_data = weather_data.set_index('Time')
-    weather_data = weather_data[['GHI', 'DNI', 'DHI', 'Temperature', 'Wind Speed']]
-    weather_data.columns = ['ghi', 'dni', 'dhi', 'temp_air', 'wind_speed']
-    #dni_extra represents the extraterrestrial direct normal irradiance
-    weather_data["dni_extra"] = pvlib.irradiance.get_extra_radiation(weather_data.index)
+    data = response.json()
+    return data
 
-    return weather_data
 
-#TODO: Fix it
 #PV Form
 with st.form(key='input_form'):
     st.subheader("Enter the required information:")
     address_input = st.text_input("Address:")
     azimuth = st.number_input("Azimuth angle (degrees):", 0, 360, 180)
     tilt = st.number_input("Surface tilt (degrees):", 0, 90, 30)
-
-    sandia_modules = pvlib.pvsystem.retrieve_sam("SandiaMod")
-    sandia_inverters = pvlib.pvsystem.retrieve_sam("sandiainverter")
-
-    module_input = st.selectbox("PV module:", list(sandia_modules.columns))
-    inverter_input = st.selectbox("Inverter:", list(sandia_inverters.columns))
-
-    module_expander = st.expander("PV Module Information", expanded=False)
-    with module_expander:
-        st.write(sandia_modules[module_input])
-
-    inverter_expander = st.expander("Inverter Information", expanded=False)
-    with inverter_expander:
-        st.write(sandia_inverters[inverter_input])
-
+    system_capacity = st.number_input("System capacity (kW):", 1, 100, 4)
+    array_type = st.selectbox("Array type:", [1, 2, 3, 4])
+    module_type = st.selectbox("Module type:", [1, 2, 3])
+    losses = st.number_input("Losses (%):", 0, 100, 14)
     submit_button = st.form_submit_button("Submit")
+
 if submit_button:
-    site = get_location(address_input)
-
-    if site is not None:
-        st.write(f"Location (latitude, longitude): {site.latitude}, {site.longitude}")
-        st.write(f"Timezone: {site.tz}")
-
-        module = sandia_modules[module_input]
-        inverter = sandia_inverters[inverter_input]
-
-        start_date = pd.Timestamp('2020-01-01', tz='UTC')
-        end_date = pd.Timestamp('2020-1-02', tz= 'UTC')
+    if address_input:
         api_key = 'tOKQdaCJ873TY4aHH8ipheCxZtX86dwvv5fFSPL4'
+        dc = estimate_energy(api_key, address_input, azimuth, tilt, system_capacity, array_type, module_type, losses)
+        fig_power = px.line(x=dc.index, y=dc, labels={"x": "Date and Time", "y": "DC Output (W)"},
+                            title="Hourly DC Output")
+        fig_power.update_xaxes(rangeslider_visible=True,
+                               rangeselector=dict(buttons=list([
+                                   dict(count=1, label="1h", step="hour", stepmode="backward"),
+                                   dict(count=6, label="6h", step="hour", stepmode="backward"),
+                                   dict(count=12, label="12h", step="hour", stepmode="backward"),
+                                   dict(count=24, label="1d", step="hour", stepmode="backward"),
+                                   dict(step="all")
+                               ])),
+                               range=[dc.index[0], dc.index[0] + datetime.timedelta(days=1)])
+        st.plotly_chart(fig_power)
 
-
-        weather_data = get_nsrdb_data(site.latitude, site.longitude, start_date, end_date, api_key)
-
-        energy = estimate_energy(site, azimuth, tilt, module, inverter, weather_data)
+        # Create an interactive plot with Plotly
+        dc_daily = dc.resample("D").sum() / 1000
+        fig = px.line(x=dc_daily.index, y=dc_daily, labels={"x": "Date", "y": "DC Output (kWh)"}, title="Daily DC Output")
+        fig.update_xaxes(rangeslider_visible=True,
+                         rangeselector=dict(buttons=list([
+                             dict(count=1, label="1d", step="day", stepmode="backward"),
+                             dict(count=7, label="1w", step="day", stepmode="backward"),
+                             dict(count=1, label="1m", step="month", stepmode="backward"),
+                             dict(step="all")
+                         ])),
+                         range=[dc_daily.index[0], dc_daily.index[0] + datetime.timedelta(days=1)])
+        st.plotly_chart(fig)
 
     else:
         st.error("Invalid address. Please enter a valid address.")
+
+
+
+
+
+st.title("Cost Estimation")
