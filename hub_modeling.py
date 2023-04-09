@@ -263,118 +263,118 @@ if hub.usage_factor != hub_copy.usage_factor or hub.vehicle_mix != hub_copy.vehi
 elif hub.usage_factor == hub_copy.usage_factor or hub.vehicle_mix == hub_copy.vehicle_mix:
     hub_changed = False
 
-# # Figures
-# vehicle_throughput_container = st.container()
-# vehicle_throughput_container.subheader("Vehicle Throughput")
-# vehicle_throughput_container.text("This section calculates the maximum throughput a given hub could service.")
-# vehicle_throughput_expander = vehicle_throughput_container.expander("Throughput")
-# hub_max = Hub(hub.hub_id, [1, 1], hub.hub_ports, hub.vehicle_mix)
-# hub_serviced_vehicles = hub.vehicles_serviced()
-# hub_max_serviced_vehicles = hub_max.vehicles_serviced()
-# hub_copy_serviced_vehicles = hub_copy.vehicles_serviced()
-#
-# ####################
-# # Bar graph
-# if hub_changed:
-#     BARGRAPH_xaxislabels = ["Typical Use", "Max Use", "Custom Use"]
-#     BARGRAPH_seriesdata = [{
-#         "name": "Class A",
-#         "type": 'bar',
-#         "stack": 'Ad',
-#         "emphasis": {
-#             "focus": 'series'
-#         },
-#         "data": [hub_serviced_vehicles[0], hub_max_serviced_vehicles[0], hub_copy_serviced_vehicles[0]]
-#     },
-#         {
-#             "name": "Class B",
-#             "type": 'bar',
-#             "stack": 'Ad',
-#             "emphasis": {
-#                 "focus": 'series'
-#             },
-#             "data": [hub_serviced_vehicles[1], hub_max_serviced_vehicles[1], hub_copy_serviced_vehicles[1]]
-#         },
-#         {
-#             "name": "Class c",
-#             "type": 'bar',
-#             "stack": 'Ad',
-#             "emphasis": {
-#                 "focus": 'series'
-#             },
-#             "data": [hub_serviced_vehicles[2], hub_max_serviced_vehicles[2], hub_copy_serviced_vehicles[2]]
-#         }
-#
-#     ]
-# else:
-#     BARGRAPH_xaxislabels = ["Typical Use", "Max Use"]
-#     BARGRAPH_seriesdata = [{
-#         "name": "Class A",
-#         "type": 'bar',
-#         "stack": 'Ad',
-#         "emphasis": {
-#             "focus": 'series'
-#         },
-#         "data": [hub_serviced_vehicles[0], hub_max_serviced_vehicles[0]]
-#     },
-#         {
-#             "name": "Class B",
-#             "type": 'bar',
-#             "stack": 'Ad',
-#             "emphasis": {
-#                 "focus": 'series'
-#             },
-#             "data": [hub_serviced_vehicles[1], hub_max_serviced_vehicles[1]]
-#         },
-#         {
-#             "name": "Class c",
-#             "type": 'bar',
-#             "stack": 'Ad',
-#             "emphasis": {
-#                 "focus": 'series'
-#             },
-#             "data": [hub_serviced_vehicles[2], hub_max_serviced_vehicles[2]]
-#         }
-#
-#     ]
-#
-# option = {
-#     "tooltip": {
-#         "trigger": 'axis',
-#         "axisPointer": {
-#             "type": 'shadow'
-#         }
-#     },
-#     "legend": {},
-#     "grid": {
-#         "left": '3%',
-#         "right": '4%',
-#         "bottom": '3%',
-#         "containLabel": "true"
-#     },
-#     "xAxis": [
-#         {
-#             "name": 'Hub Type',
-#             "type": 'category',
-#             "data": BARGRAPH_xaxislabels
-#         }
-#     ],
-#     "yAxis": [
-#         {
-#             "name": 'Vehicle Throughput',
-#             "type": 'value'
-#         }
-#     ],
-#     "series": BARGRAPH_seriesdata
-# }
-#
-# test = vehicle_throughput_expander.empty()
-# with test:
-#     st_echarts(options=option)
-#
-# # TODO: Finish explanation how
-# vehicle_throughput_explanation_expander = vehicle_throughput_container.expander("Explanation")
-# vehicle_throughput_explanation_expander.text("Comeback")
+# Figures
+vehicle_throughput_container = st.container()
+vehicle_throughput_container.subheader("Vehicle Throughput")
+vehicle_throughput_container.text("This section calculates the maximum throughput a given hub could service.")
+vehicle_throughput_expander = vehicle_throughput_container.expander("Throughput")
+hub_max = Hub(hub.hub_id, [1, 1], hub.hub_ports, hub.vehicle_mix)
+hub_serviced_vehicles = hub.vehicles_serviced()
+hub_max_serviced_vehicles = hub_max.vehicles_serviced()
+hub_copy_serviced_vehicles = hub_copy.vehicles_serviced()
+
+####################
+# Bar graph
+if hub_changed:
+    BARGRAPH_xaxislabels = ["Typical Use", "Max Use", "Custom Use"]
+    BARGRAPH_seriesdata = [{
+        "name": "Class A",
+        "type": 'bar',
+        "stack": 'Ad',
+        "emphasis": {
+            "focus": 'series'
+        },
+        "data": [hub_serviced_vehicles[0], hub_max_serviced_vehicles[0], hub_copy_serviced_vehicles[0]]
+    },
+        {
+            "name": "Class B",
+            "type": 'bar',
+            "stack": 'Ad',
+            "emphasis": {
+                "focus": 'series'
+            },
+            "data": [hub_serviced_vehicles[1], hub_max_serviced_vehicles[1], hub_copy_serviced_vehicles[1]]
+        },
+        {
+            "name": "Class c",
+            "type": 'bar',
+            "stack": 'Ad',
+            "emphasis": {
+                "focus": 'series'
+            },
+            "data": [hub_serviced_vehicles[2], hub_max_serviced_vehicles[2], hub_copy_serviced_vehicles[2]]
+        }
+
+    ]
+else:
+    BARGRAPH_xaxislabels = ["Typical Use", "Max Use"]
+    BARGRAPH_seriesdata = [{
+        "name": "Class A",
+        "type": 'bar',
+        "stack": 'Ad',
+        "emphasis": {
+            "focus": 'series'
+        },
+        "data": [hub_serviced_vehicles[0], hub_max_serviced_vehicles[0]]
+    },
+        {
+            "name": "Class B",
+            "type": 'bar',
+            "stack": 'Ad',
+            "emphasis": {
+                "focus": 'series'
+            },
+            "data": [hub_serviced_vehicles[1], hub_max_serviced_vehicles[1]]
+        },
+        {
+            "name": "Class c",
+            "type": 'bar',
+            "stack": 'Ad',
+            "emphasis": {
+                "focus": 'series'
+            },
+            "data": [hub_serviced_vehicles[2], hub_max_serviced_vehicles[2]]
+        }
+
+    ]
+
+option = {
+    "tooltip": {
+        "trigger": 'axis',
+        "axisPointer": {
+            "type": 'shadow'
+        }
+    },
+    "legend": {},
+    "grid": {
+        "left": '3%',
+        "right": '4%',
+        "bottom": '3%',
+        "containLabel": "true"
+    },
+    "xAxis": [
+        {
+            "name": 'Hub Type',
+            "type": 'category',
+            "data": BARGRAPH_xaxislabels
+        }
+    ],
+    "yAxis": [
+        {
+            "name": 'Vehicle Throughput',
+            "type": 'value'
+        }
+    ],
+    "series": BARGRAPH_seriesdata
+}
+
+test = vehicle_throughput_expander.empty()
+with test:
+    st_echarts(options=option)
+
+# TODO: Finish explanation how
+vehicle_throughput_explanation_expander = vehicle_throughput_container.expander("Explanation")
+vehicle_throughput_explanation_expander.text("Comeback")
 
 #
 # """
@@ -399,7 +399,7 @@ simulated_data_graphs.dataframe(df4)
 
 power = int(df4["Power"])
 
-energy_consumption = 0.0
+energy_consumption = 0
 for vehicle_class in ["Class 1-2", "Class 3-6", "Class 7-8"]:
     try:
         energy_consumption += df3.set_index("Vehicle")["Consumption"][vehicle_class]
