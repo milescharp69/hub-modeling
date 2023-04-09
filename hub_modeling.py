@@ -9,6 +9,8 @@ import requests
 import numpy as np
 import pandas as pd
 import plotly.express as px
+import matplotlib.pyplot as plt
+
 
 st.title("Hub Model Explanation")
 
@@ -384,6 +386,44 @@ vehicle_throughput_explanation_expander.text("Comeback")
 # assume that any given counted vehicle's session is going to take place in 60/150ths of an hour at a given port      What does he mean by this though
 #
 # """
+
+
+def plot_port_status(df):
+    fig, ax = plt.subplots(figsize=(15, 10))
+    port_status_data = df.iloc[:, 1:]
+    im = ax.imshow(port_status_data.T, aspect='auto', cmap='viridis', origin='lower')
+
+    ax.set_xticks(np.arange(len(df.index)))
+    ax.set_xticklabels(df.index, rotation=90, fontsize=8)
+    ax.set_yticks(np.arange(len(port_status_data.columns)))
+    ax.set_yticklabels(port_status_data.columns)
+
+    ax.set_xlabel("Date and Time")
+    ax.set_ylabel("Port ID")
+    ax.set_title("Charging Port Status")
+
+    cbar = fig.colorbar(im, ax=ax)
+    cbar.ax.set_ylabel("Status (0: Available, 1: In Use)", rotation=-90, va="bottom")
+
+    plt.tight_layout()
+    st.pyplot(fig)
+
+
+
+# Streamlit app
+st.title("Port Usage Visualization")
+
+# Simulate the data (use your graphic_sim function)
+df, _, _, _ = hub.graphic_sim("1/31/2022")
+
+# Set up date input
+start_date = st.date_input("Start date", value=pd.to_datetime("1/1/2022"))
+end_date = st.date_input("End date", value=pd.to_datetime("1/31/2022"))
+
+# Visualize port usage
+fig = plot_port_status(df, start_date, end_date)
+st.pyplot(fig)
+
 
 st.title("Simulated Vehicle Throughput")
 @st.cache

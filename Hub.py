@@ -43,23 +43,18 @@ class Session:
         max_battery_percentage = 0.85
         target_battery_percentage = np.random.uniform(min_battery_percentage, max_battery_percentage)
 
-        target_charge =  pq.Quantity(self.vehicle.battery_capacity * target_battery_percentage, 'kWh')
+        #target_charge =  pq.Quantity(self.vehicle.battery_capacity * target_battery_percentage, 'kWh')
+        target_charge = pq.Quantity(self.vehicle.battery_capacity * target_battery_percentage, 'kWh')
         required_charge = target_charge - self.vehicle.battery
-
-        if 7 <= current_time.hour < 22:
-            charge_time_factor = hub.usage_factor[0]
-        else:
-            charge_time_factor = hub.usage_factor[1]
 
         self.vehicle.battery += pq.Quantity(required_charge, 'kWh')
         self.consumption =  pq.Quantity(required_charge, 'kWh').magnitude
-
 
         charge_time_minutes = self.vehicle.charging_time(self.vehicle.battery / self.vehicle.battery_capacity, target_battery_percentage, self.port_used)
 
         self.power = self.port_used.Port_kW.magnitude
 
-        self.charge_time = float(pq.Quantity(charge_time_minutes, 'minute').rescale('second').magnitude)
+        self.charge_time = float(pq.Quantity(charge_time_minutes, 'hour').rescale('second').magnitude)
 
         self.port_used.open_date = pd.Timestamp(current_time.timestamp() + self.charge_time, unit='s').ceil(
             freq='5T')
@@ -375,6 +370,7 @@ class Hub:
                 else:
                     self.slots = 180
                 slot_switch[0] = slot_switch[1]
+
             # Create a new session every 30 minutes
             if date.minute % 30 == 0:
                 sub_session = Session(self, date)
