@@ -431,7 +431,7 @@ st.title("Simulated Vehicle Throughput")
 
 
 
-@st.cache_data
+@st.cache
 def hub_sim(_model, date):
     return _model.graphic_sim(date)
 df1, df2, df3, df4 = hub_sim(Hub(hub.hub_id, [st.session_state.usage_a_slider, st.session_state.usage_b_slider],
@@ -484,7 +484,7 @@ for i, vehicle_class in enumerate(["Class 1-2", "Class 3-6", "Class 7-8"]):
 
 #Solar Panel
 st.title("PV Energy Estimation")
-@st.cache_data
+@st.cache
 def estimate_energy(api_key, address, azimuth, tilt, system_capacity, array_type, module_type, losses):
     pvwatts_data = get_pvwatts_data(api_key, address, azimuth=azimuth, tilt=tilt, system_capacity=system_capacity, array_type=array_type, module_type=module_type, losses=losses)
 
