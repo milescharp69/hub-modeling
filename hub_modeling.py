@@ -29,9 +29,9 @@ vehicle_classes_expander = vehicle_explanation_container.expander(vehicle_classe
 vehicle_classes_chart = {
     "tooltip": {"trigger": "axis", "axisPointer": {"type": "shadow"}},
     "legend": {
-        "data": ["mi/kW", "miles/yr", "kWh/yr"],
+        "data": ["mi/kWh", "miles/yr", "kWh/yr"],
         "selectedMode": "single",  # Allow only one legend item to be selected at a time
-        "selected": {"mi/kW": True},  # Initially select the "mi/kW" legend item
+        "selected": {"mi/kWh": True},  # Initially select the "mi/kW" legend item
     },
     "grid": {"left": "3%", "right": "4%", "bottom": "3%", "containLabel": True},
     "xAxis": {"type": "value"},
@@ -54,7 +54,7 @@ vehicle_classes_chart = {
     },
     "series": [
         {
-            "name": "mi/kW",
+            "name": "mi/kWh",
             "type": "bar",
             "stack": "total",
             "label": {
@@ -418,19 +418,7 @@ with test:
 # vehicle_throughput_explanation_expander = vehicle_throughput_container.expander("Explanation")
 # vehicle_throughput_explanation_expander.text("Comeback")
 
-#
-# """
-# First pass
-# assume for the value of energy produced use 10 cents
-# 6 cents if you are selling it back t o your rep
-# assume that any given counted vehicle's session is going to take place in 60/150ths of an hour at a given port      What does he mean by this though
-#
-# """
-
 st.title("Simulated Vehicle Throughput")
-
-
-
 @st.cache
 def hub_sim(_model, date):
     return _model.graphic_sim(date)

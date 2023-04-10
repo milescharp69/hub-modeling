@@ -53,25 +53,3 @@ class car(vehicleClass):
         #TODO: fix
 
         return float((((self.mi_year * (1/self.mi_kWH)).rescale('(kW * hour) / month')  / port_used.Port_kW) * pq.month).rescale("minute").magnitude)
-
-
-
-
-'''
-13.459737530823492 h*kW/d
-35.62580730318138 h*kW/d
-325.54408943201827 h*kW/d
-
-Class C vehicles will have to charge once per day 
-
-
-
-How much does each vehicle need within a session consumption per day
-Class A needs 15%
-Class b needs 15%
-Class C needs 60%
-
-Dont generated vehicle if there is already a vehicle of that vehicle class still in the queue
-Is there a difference between a vehicle being serviced 
-
-'''
