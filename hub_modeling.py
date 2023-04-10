@@ -3,64 +3,64 @@ from streamlit_echarts import st_echarts
 import quantities as pq
 from Hub import Hub
 from Port import Port
-import pvlib
-import pandas as pd
-from pvlib import location
-from pvlib import irradiance
-from pvlib import pvsystem
-from datetime import timedelta
-import matplotlib.pyplot as plt
-from matplotlib.dates import DateFormatter
 from VehicleClass import car
 import datetime
-import geopy
-from timezonefinder import TimezoneFinder
-import pytz
-from geopy.geocoders import Nominatim
-from timezonefinder import TimezoneFinder
-from geopy.exc import GeocoderTimedOut, GeocoderUnavailable, GeocoderServiceError
-from haversine import haversine, Unit
 import requests
-import io
 import numpy as np
+import pandas as pd
+import plotly.express as px
+import matplotlib.pyplot as plt
+
 st.title("Hub Model Explanation")
 
 # TODO:Finish explanation
 model_explanation = st.container()
 
+# Create a container for the vehicle explanation section
 vehicle_explanation_container = st.container()
-vehicle_explanation_container.subheader("Vehicle Explanation")
-"""The following vehicle classes were used in this model"""
-vehicle_explanation_twelve_class_chart = vehicle_explanation_container.expander("The Twelve Vehicle Classes")
 
-options = {
+# Add a subheader for the vehicle explanation section
+vehicle_explanation_container.subheader("Vehicle Explanation")
+
+# Add a comment about the vehicle classes used in the model
+vehicle_classes_comment = "The following twelve vehicle classes were used in this model:"
+vehicle_classes_expander = vehicle_explanation_container.expander(vehicle_classes_comment)
+# Create an ECharts chart to display the twelve vehicle classes
+vehicle_classes_chart = {
     "tooltip": {"trigger": "axis", "axisPointer": {"type": "shadow"}},
     "legend": {
-        "data": ["mi/kW", "miles/yr", "kWh/yr"]
+        "data": ["mi/kW", "miles/yr", "kWh/yr"],
+        "selectedMode": "single",  # Allow only one legend item to be selected at a time
+        "selected": {"mi/kW": True},  # Initially select the "mi/kW" legend item
     },
     "grid": {"left": "3%", "right": "4%", "bottom": "3%", "containLabel": True},
     "xAxis": {"type": "value"},
     "yAxis": {
         "type": "category",
-        "data": ["Sedan Average",
-                 "Sedan (Urban/Low)",
-                 "Sedan High/Rideshare",
-                 "SUV",
-                 "PU/Van (Class 1-2)",
-                 "Class3/4 (SmBox, Minibus)",
-                 "Class5/6 (School,Bucket: L)",
-                 "Class5/6 (School,Bucket: H)",
-                 "Class7 (Refuse, Transit: L)",
-                 "Class7 (Refuse, Transit: H)",
-                 "Class8 (local)",
-                 "Class8 (freight)"]
+        "data": [
+            "Sedan Average",
+            "Sedan (Urban/Low)",
+            "Sedan High/Rideshare",
+            "SUV",
+            "PU/Van (Class 1-2)",
+            "Class3/4 (SmBox, Minibus)",
+            "Class5/6 (School,Bucket: L)",
+            "Class5/6 (School,Bucket: H)",
+            "Class7 (Refuse, Transit: L)",
+            "Class7 (Refuse, Transit: H)",
+            "Class8 (local)",
+            "Class8 (freight)",
+        ],
     },
     "series": [
         {
             "name": "mi/kW",
             "type": "bar",
             "stack": "total",
-            "label": {"show": True},
+            "label": {
+                "show": True,
+                "position": "outsideRight"
+            },
             "emphasis": {"focus": "series"},
             "data": [3.8, 3.9, 3.8, 3, 2, 1.5, 0.65, 0.65, 0.5, 0.5, 0.4, 0.35],
         },
@@ -68,7 +68,10 @@ options = {
             "name": "miles/yr",
             "type": "bar",
             "stack": "total",
-            "label": {"show": True},
+            "label": {
+                "show": True,
+                "position": "outsideRight"
+            },
             "emphasis": {"focus": "series"},
             "data": [16100, 8000, 45000, 16100, 14000, 12000, 12000, 40000, 25000, 40000, 50000, 60000],
         },
@@ -76,42 +79,83 @@ options = {
             "name": "kWh/yr",
             "type": "bar",
             "stack": "total",
-            "label": {"show": True},
+            "label": {
+                "show": True,
+                "position": "outsideRight"
+            },
             "emphasis": {"focus": "series"},
             "data": [4237, 2051, 11842, 5367, 7000, 8000, 18462, 61538, 50000, 80000, 125000, 171429],
-        }
+        },
+    ],
+}
+# Create an empty expander to hold the ECharts chart
+vehicle_classes_chart_expander = vehicle_classes_expander.empty()
+# Add the ECharts chart to the expander
+with vehicle_classes_chart_expander:
+    st_echarts(options=vehicle_classes_chart, height="500px")
+vehicle_explanation_container.markdown("""For the model, the twelve vehicle classes were aggregated into three groups.""")
 
+vehicle_aggregated_chart = {
+    "tooltip": {"trigger": "axis", "axisPointer": {"type": "shadow"}},
+    "legend": {
+        "data": ["mi/kW", "miles/yr"],
+        "selectedMode": "single",
+        "selected": {"mi/kW": True},
+    },
+    "grid": {"left": "3%", "right": "4%", "bottom": "3%", "containLabel": True},
+    "xAxis": {"type": "value"},
+    "yAxis": {
+        "type": "category",
+        "data": [
+            "Class 1-2",
+            "Class 3-6",
+            "Class 7-8",
+        ],
+    },
+    "series": [
+        {
+            "name": "mi/kW",
+            "type": "bar",
+            "stack": "total",
+            "label": {
+                "show": True,
+                "position": "inside",
+                "color": "black",
+                "backgroundColor": "rgba(0, 0, 0, 0)",
+                "fontWeight": "normal"
+            },
+            "emphasis": {"focus": "series"},
+            "data": [3.181, 1.245, 0.41],
+        },
+        {
+            "name": "miles/yr",
+            "type": "bar",
+            "stack": "total",
+            "label": {
+                "show": True,
+                "position": "inside",
+                "color": "black",
+                "backgroundColor": "rgba(0, 0, 0, 0)",
+                "fontWeight": "normal"
+            },
+            "emphasis": {"focus": "series"},
+            "data": [15638, 16200, 48750],
+        },
     ],
 }
 
-vehicle_explanation_twelve_class_chart_empty = vehicle_explanation_twelve_class_chart.empty()
-with vehicle_explanation_twelve_class_chart_empty:
-    st_echarts(options=options, height="500px")
-
-"""For the model, the twelve vehicle classes were aggregated into three groups. """
-
-# if veh_class == 0:
-#     self.mi_kWH = pq.Quantity(3.181, 'miles / (kW * hour)')
-#     self.mi_year = pq.Quantity(15638, 'miles / year')
-#     self.className = 'Class 1-2'
-# elif veh_class == 1:
-#     self.mi_kWH = pq.Quantity(1.245, 'miles / (kW * hour)')
-#     self.mi_year = pq.Quantity(16200, 'miles / year')
-#     self.className = 'Class 3-6'
-# else:
-#     self.mi_kWH = pq.Quantity(0.41, 'miles / (kW * hour)')
-#     self.mi_year = pq.Quantity(48750, 'miles / year')
-#     self.className = 'Class 7-8'
+with vehicle_explanation_container:
+    st_echarts(options=vehicle_aggregated_chart, height="300px")
 
 # TODO: Complete charging section
-vehicle_charging_container = st.container()
-vehicle_charging_container.subheader("Vehicle Charging")
-# With Battery
-# Without Battery
-if vehicle_charging_container.button('With battery'):
-    vehicle_charging_container.write('Finish')
-else:
-    vehicle_charging_container.write('Finish')
+# vehicle_charging_container = st.container()
+# vehicle_charging_container.subheader("Vehicle Charging")
+# # With Battery
+# # Without Battery
+# if vehicle_charging_container.button('With battery'):
+#     vehicle_charging_container.write('Finish')
+# else:
+#     vehicle_charging_container.write('Finish')
 
 # Sidebar code
 hub_types = ["Rural", "Commercial Dominant", 'Urban Community', "Urban Multimodal"]
@@ -130,10 +174,10 @@ if selected_hub_type == "Rural":
               [0.4, 0.5, 0.1])
 elif selected_hub_type == "Commercial Dominant":
     hub = Hub(selected_hub_type,
-              [0.6, 0.1],
-              [Port(pq.Quantity(150, 'kW')) for i in range(6)] + [Port(pq.Quantity(350, 'kW')) for i in range(18)] +
-               [Port(pq.Quantity(350, 'kW')) for i in range(16)],
-              [0.4, 0.5, 0.1])
+              [0.8, 0.6],
+              [Port(pq.Quantity(150, 'kW')) for i in range(6)] + [Port(pq.Quantity(350, 'kW')) for i in range(16)] +
+               [Port(pq.Quantity(1000, 'kW')) for i in range(18)],
+              [0.1, 0.35, 0.55])
 elif selected_hub_type == "Urban Community":
     hub = Hub(selected_hub_type,
               [0.7, 0.5],
@@ -147,11 +191,10 @@ elif selected_hub_type == "Urban Multimodal":
 # Hub Info
 # TODO: Finish this
 
-# Hubinfo expander
+#Hub info expander
 hubinfocontainer = st.sidebar.container()
-hubinfocontainercol1, hubinfocontainercol2 = hubinfocontainer.columns(2)
-maincol1expander = hubinfocontainercol1.expander("Hub Information ", expanded=True)
-maincol1expander.markdown(
+hubinfoexpander = hubinfocontainer.expander("Hub Information ", expanded=True)
+hubinfoexpander.markdown(
     """
 <style>
 .streamlit-expanderHeader {
@@ -161,24 +204,60 @@ maincol1expander.markdown(
 """,
     unsafe_allow_html=True,
 )
-maincol1expander.markdown(
+hubinfoexpander.markdown(
     "<p style='text-align: left; color: black; text-indent: 15%;'>Hub Type:       {}</p>".format(
         hub.hub_id), unsafe_allow_html=True)
-maincol1expander.markdown(
+hubinfoexpander.markdown(
     "<p style='text-align: left; color: black; text-indent: 15%;'>Total Ports:        {}</p>".format(
         hub.total_ports), unsafe_allow_html=True)
-maincol1expander.markdown(
+hubinfoexpander.markdown(
     "<p style='text-align: left; color: black; text-underline-offset: 20%; text-indent: 15%;'><u>Types of Ports</u></p>",
     unsafe_allow_html=True)
-
 for i in hub.port_types.keys():
-    maincol1expander.markdown(
+    hubinfoexpander.markdown(
         "<p style='text-align: left; color: black; text-underline-offset: 20%; text-indent: 20%;'>• {}</p>".format(
             str(int(i)) + "kW x " + str(hub.port_types[i])),
         unsafe_allow_html=True)
 
-maincol2expander = hubinfocontainercol2.expander("Retail and TDU Charges", expanded=True)
-maincol2expander.text("Work In Progress")
+retail_charge_expander = st.sidebar.expander("Retail and TDU Charges")
+pq.markup.config.use_unicode = True
+unitsDollars = pq.UnitQuantity('USD', 1, symbol='$')
+# initialize a list to store the charges
+charges = []
+if "charges" not in st.session_state:
+    st.session_state.charges = []
+# define a function to add a new charge to the list
+def add_charge(name, cost, unit):
+    charge = {
+        'name': name,
+        'cost': cost,
+        'unit': unit
+    }
+    st.session_state.charges.append(charge)
+
+# define a function to display the charges as a table
+def display_charges():
+    total_cost = 0
+    for charge in st.session_state.charges:
+        total_cost += charge['cost']
+    retail_charge_expander.write(f"Total cost of charges: ${total_cost:.2f}")
+    retail_charge_expander.write("Charges:")
+    for i, charge in enumerate(st.session_state.charges):
+        retail_charge_expander.write(f"{i+1}. {charge['name']}: {charge['cost']:.2f} {charge['unit']}")
+
+# define input fields for adding a new charge
+new_charge_name = retail_charge_expander.text_input("Charge name")
+new_charge_cost = retail_charge_expander.number_input("Charge cost")
+new_charge_unit = retail_charge_expander.selectbox("Charge unit", ["USD / kWh", "USD / kW"])
+# add the new charge to the list when the "Add charge" button is clicked
+if retail_charge_expander.button("Add charge"):
+    add_charge(new_charge_name, new_charge_cost, new_charge_unit)
+    # clear the input fields for the next charge
+    new_charge_name = ""
+    new_charge_cost = 0
+    new_charge_unit = "USD / kWh"
+# display the current charges as a table
+display_charges()
 
 # Class Mixes
 classmix_expander = st.sidebar.expander("Vehicle Class Mix Sliders")
@@ -335,9 +414,9 @@ test = vehicle_throughput_expander.empty()
 with test:
     st_echarts(options=option)
 
-# TODO: Finish explanation how
-vehicle_throughput_explanation_expander = vehicle_throughput_container.expander("Explanation")
-vehicle_throughput_explanation_expander.text("Comeback")
+# # TODO: Finish explanation how
+# vehicle_throughput_explanation_expander = vehicle_throughput_container.expander("Explanation")
+# vehicle_throughput_explanation_expander.text("Comeback")
 
 #
 # """
@@ -351,12 +430,13 @@ vehicle_throughput_explanation_expander.text("Comeback")
 st.title("Simulated Vehicle Throughput")
 
 
-@st.cache
-def hub_sim(model, date):
-    return model.graphic_sim(date)
 
-
-df1, df2, df3, df4 = hub_sim(hub, "1/31/2022")
+@st.cache_data
+def hub_sim(_model, date):
+    return _model.graphic_sim(date)
+df1, df2, df3, df4 = hub_sim(Hub(hub.hub_id, [st.session_state.usage_a_slider, st.session_state.usage_b_slider],
+                   hub.hub_ports, [st.session_state.class_a_slider, st.session_state.class_b_slider,
+                                   st.session_state.class_c_slider]), "1/31/2022")
 
 simulated_data_graphs = st.expander("Simulated Data Graphs")
 simulated_data_graphs.dataframe(df1)
@@ -404,150 +484,90 @@ for i, vehicle_class in enumerate(["Class 1-2", "Class 3-6", "Class 7-8"]):
 
 #Solar Panel
 st.title("PV Energy Estimation")
+@st.cache_data
+def estimate_energy(api_key, address, azimuth, tilt, system_capacity, array_type, module_type, losses):
+    pvwatts_data = get_pvwatts_data(api_key, address, azimuth=azimuth, tilt=tilt, system_capacity=system_capacity, array_type=array_type, module_type=module_type, losses=losses)
 
-def get_location(address):
-    geolocator = Nominatim(user_agent="pv_energy_estimator")
-    max_retries = 3
-    timeout = 1
+    hours = len(pvwatts_data['outputs']['dc'])
+    date_range = pd.date_range(start="2022-01-01", periods=hours, freq="H")
+    dc_hourly = pd.Series(pvwatts_data['outputs']['dc'], index=date_range, name="DC Output (W)")
 
-    for i in range(max_retries):
-        try:
-            location = geolocator.geocode(address, timeout=timeout)
-            if location is not None:
-                latitude = location.latitude
-                longitude = location.longitude
-                timezone = TimezoneFinder().timezone_at(lng=longitude, lat=latitude)
-                return pvlib.location.Location(latitude, longitude, tz=timezone)
-            else:
-                return None
-        except (GeocoderTimedOut, GeocoderUnavailable, GeocoderServiceError):
-            timeout *= 2  # Increase the timeout for the next attempt
+    return dc_hourly
 
-    return None
-def estimate_energy(site, azimuth, tilt, module, inverter, weather_data):
-    # Define Temperature Paremeters
-    temperature_model_parameters = pvlib.temperature.TEMPERATURE_MODEL_PARAMETERS['sapm'][
-        'open_rack_glass_glass']
-    # Define the basics of the class PVSystem
-    system = pvlib.pvsystem.PVSystem(surface_tilt=tilt,
-                                     surface_azimuth=azimuth,
-                                     module_parameters=module,
-                                     inverter_parameters=inverter,
-                                     temperature_model_parameters=temperature_model_parameters
-                                     )
-    # Creation of the ModelChain object
-    """ The example does not consider AOI losses nor irradiance spectral losses"""
-    mc = pvlib.modelchain.ModelChain(system, site,
-                                     aoi_model='no_loss',
-                                     spectral_model='no_loss',
-                                     name='AssessingSolar_PV')
-    mc.run_model(weather_data)
-    # Plot the DC power output as a function of time
-    fig, ax = plt.subplots(figsize=(7, 3))
-    mc.results.dc['p_mp'].plot(ax=ax, label='DC Power Output')
-    ax.xaxis.set_major_formatter(DateFormatter("%H:%M"))
-    ax.set_ylabel('Power (W)')
-    ax.set_xlabel('Time (UTC)')
-    ax.set_title('DC Power Output of PV System')
-    ax.legend()
-    plt.tight_layout()
-    st.pyplot(fig)
-
-    # Calculate the daily energy generation and plot it as a function of time
-    dc_energy = mc.results.dc['p_mp'] / 60.0 / 1000.0  # convert from W to kWh
-    daily_energy = dc_energy.resample('D').sum()
-
-    fig, ax = plt.subplots(figsize=(7, 3))
-    daily_energy.plot(ax=ax, label='Daily Energy Generation')
-    ax.xaxis.set_major_formatter(DateFormatter("%Y-%m-%d"))
-    ax.set_ylabel('Energy (kWh)')
-    ax.set_xlabel('Date (UTC)')
-    ax.set_title('Daily Energy Generation of PV System')
-    ax.legend()
-    plt.tight_layout()
-    st.pyplot(fig)
-
-    return dc_energy
-def get_station_data():
-    api_key = 'tOKQdaCJ873TY4aHH8ipheCxZtX86dwvv5fFSPL4'  # Replace with your NREL API Key
-    url = f'https://developer.nrel.gov/api/midc_stations/v1.json?api_key={api_key}'
-    response = requests.get(url)
-
-    if response.status_code == 404:
-        raise Exception("API request returned 404 Not Found. Please check the API endpoint URL and parameters.")
-
-    data = response.json()
-    return pd.DataFrame(data['stations'])
-def get_nsrdb_data(latitude, longitude, start_date, end_date, api_key):
-    url = 'https://developer.nrel.gov/api/nsrdb/v2/solar/psm3-download.csv'
+def get_pvwatts_data(api_key, address, system_capacity=4, azimuth=180, tilt=20, array_type=1, module_type=1, losses=14):
+    url = 'https://developer.nrel.gov/api/pvwatts/v8'
     params = {
-        'wkt': f'POINT({longitude} {latitude})',
-        'names': f'{start_date.year}',
-        'leap_day': 'false',
-        'interval': '60',
-        'utc': 'false',
-        'full_name': 'Miles Charpentier',
-        'email': 'miles.charpentier.amaz@gmail.com',
-        'affiliation': 'Student',
-        'mailing_list': 'false',
-        'reason': 'research',
-        'api_key': api_key
+        'format': 'json',
+        'api_key': api_key,
+        'address': address,
+        'system_capacity': system_capacity,
+        'azimuth': azimuth,
+        'tilt': tilt,
+        'array_type': array_type,
+        'module_type': module_type,
+        'losses': losses,
+        'timeframe': 'hourly'  # Add timeframe parameter set to hourly
     }
 
     response = requests.get(url, params=params)
     response.raise_for_status()
 
-    weather_data = pd.read_csv(io.StringIO(response.text), skiprows=[0, 1])
-    weather_data.to_csv("weather_data.csv", index=False)
-    weather_data['Time'] = pd.to_datetime(weather_data.index)
-    weather_data = weather_data.set_index('Time')
-    weather_data = weather_data[['GHI', 'DNI', 'DHI', 'Temperature', 'Wind Speed']]
-    weather_data.columns = ['ghi', 'dni', 'dhi', 'temp_air', 'wind_speed']
-    #dni_extra represents the extraterrestrial direct normal irradiance
-    weather_data["dni_extra"] = pvlib.irradiance.get_extra_radiation(weather_data.index)
+    data = response.json()
+    return data
 
-    return weather_data
+
 #PV Form
 with st.form(key='input_form'):
     st.subheader("Enter the required information:")
     address_input = st.text_input("Address:")
     azimuth = st.number_input("Azimuth angle (degrees):", 0, 360, 180)
     tilt = st.number_input("Surface tilt (degrees):", 0, 90, 30)
-
-    sandia_modules = pvlib.pvsystem.retrieve_sam("SandiaMod")
-    sandia_inverters = pvlib.pvsystem.retrieve_sam("sandiainverter")
-
-    module_input = st.selectbox("PV module:", list(sandia_modules.columns))
-    inverter_input = st.selectbox("Inverter:", list(sandia_inverters.columns))
-
-    module_expander = st.expander("PV Module Information", expanded=False)
-    with module_expander:
-        st.write(sandia_modules[module_input])
-
-    inverter_expander = st.expander("Inverter Information", expanded=False)
-    with inverter_expander:
-        st.write(sandia_inverters[inverter_input])
-
+    system_capacity = st.number_input("System capacity (kW):", 1, 100, 4)
+    array_type = st.selectbox("Array type:", [1, 2, 3, 4])
+    module_type = st.selectbox("Module type:", [1, 2, 3])
+    losses = st.number_input("Losses (%):", 0, 100, 14)
     submit_button = st.form_submit_button("Submit")
 
+# Initialize session state for the figures
+if "fig_power" not in st.session_state:
+    st.session_state.fig_power = None
+if "fig_daily" not in st.session_state:
+    st.session_state.fig_daily = None
+
 if submit_button:
-    site = get_location(address_input)
-
-    if site is not None:
-        st.write(f"Location (latitude, longitude): {site.latitude}, {site.longitude}")
-        st.write(f"Timezone: {site.tz}")
-
-        module = sandia_modules[module_input]
-        inverter = sandia_inverters[inverter_input]
-
-        start_date = pd.Timestamp('2020-01-01', tz='UTC')
-        end_date = pd.Timestamp('2020-1-02', tz= 'UTC')
+    if address_input:
         api_key = 'tOKQdaCJ873TY4aHH8ipheCxZtX86dwvv5fFSPL4'
-
-
-        weather_data = get_nsrdb_data(site.latitude, site.longitude, start_date, end_date, api_key)
-
-        energy = estimate_energy(site, azimuth, tilt, module, inverter, weather_data)
-
+        dc = estimate_energy(api_key, address_input, azimuth, tilt, system_capacity, array_type, module_type, losses)
+        fig_power = px.line(x=dc.index, y=dc, labels={"x": "Date and Time", "y": "DC Output (W)"},
+                            title="Hourly DC Output")
+        fig_power.update_xaxes(rangeslider_visible=True,
+                               rangeselector=dict(buttons=list([
+                                   dict(count=1, label="1h", step="hour", stepmode="backward"),
+                                   dict(count=6, label="6h", step="hour", stepmode="backward"),
+                                   dict(count=12, label="12h", step="hour", stepmode="backward"),
+                                   dict(count=24, label="1d", step="hour", stepmode="backward"),
+                                   dict(step="all")
+                               ])),
+                               range=[dc.index[0], dc.index[0] + datetime.timedelta(days=1)])
+        # Create an interactive plot with Plotly
+        dc_daily = dc.resample("2H").sum() / 1000
+        fig = px.line(x=dc_daily.index, y=dc_daily, labels={"x": "Date", "y": "DC Output (kWh)"}, title="Daily DC Output")
+        fig.update_xaxes(rangeslider_visible=True,
+                         rangeselector=dict(buttons=list([
+                             dict(count=1, label="1d", step="day", stepmode="backward"),
+                             dict(count=7, label="1w", step="day", stepmode="backward"),
+                             dict(count=1, label="1m", step="month", stepmode="backward"),
+                             dict(step="all")
+                         ])),
+                         range=[dc_daily.index[0], dc_daily.index[0] + datetime.timedelta(days=1)])
+        st.session_state.fig_power = fig_power
+        st.session_state.fig_daily = fig
     else:
         st.error("Invalid address. Please enter a valid address.")
+
+#So figure are not reloaded
+if st.session_state.fig_power and st.session_state.fig_daily:
+    st.plotly_chart(st.session_state.fig_power)
+    st.plotly_chart(st.session_state.fig_daily)
+
+st.title("Cost Estimation")
